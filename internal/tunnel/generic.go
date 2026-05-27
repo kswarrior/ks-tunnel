@@ -17,6 +17,7 @@ type GenericProvider struct {
 	typeName  string
 	cmdStr    string
 	variables map[string]string
+	regex     string
 
 	status    Status
 	publicURL string
@@ -26,12 +27,13 @@ type GenericProvider struct {
 	mu        sync.RWMutex
 }
 
-func NewGenericProvider(id, name, typeName, cmdStr string, variables map[string]string) *GenericProvider {
+func NewGenericProvider(id, name, typeName, cmdStr, regex string, variables map[string]string) *GenericProvider {
 	return &GenericProvider{
 		id:        id,
 		name:      name,
 		typeName:  typeName,
 		cmdStr:    cmdStr,
+		regex:     regex,
 		variables: variables,
 		status:    StatusStopped,
 		logs:      make([]string, 0, 100),
@@ -144,9 +146,13 @@ func (p *GenericProvider) addLog(line string) {
 	}
 	p.logs = append(p.logs, line)
 
-	// Attempt to find public URL using common patterns if not found yet
+	// Attempt to find public URL using custom regex if provided, otherwise common patterns
 	if p.publicURL == "" {
-		re := regexp.MustCompile(`https?://[a-zA-Z0-9.-]+\.(ngrok-free\.app|trycloudflare\.com|loca\.lt)[^\s]*`)
+		reStr := `https?://[a-zA-Z0-9.-]+\.(ngrok-free\.app|trycloudflare\.com|loca\.lt)[^\s]*`
+		if p.regex != "" {
+			reStr = p.regex
+		}
+		re := regexp.MustCompile(reStr)
 		if found := re.FindString(line); found != "" {
 			p.publicURL = found
 		}

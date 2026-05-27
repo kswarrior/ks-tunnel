@@ -16,6 +16,7 @@ type ProviderDef struct {
 	Type      string   `json:"type"`
 	Command   string   `json:"command"`
 	Variables []string `json:"variables"`
+	Regex     string   `json:"regex"`
 }
 
 type Orchestrator struct {
@@ -141,7 +142,7 @@ type Stats struct {
 	Starting  int `json:"starting"`
 	Error     int `json:"error"`
 	Stopped   int `json:"stopped"`
-	Engines   int `json:"engines"`
+	Providers int `json:"providers"`
 }
 
 func (o *Orchestrator) GetStats() Stats {
@@ -150,7 +151,7 @@ func (o *Orchestrator) GetStats() Stats {
 
 	var s Stats
 	s.Total = len(o.tunnels)
-	s.Engines = len(o.providers)
+	s.Providers = len(o.providers)
 	for _, p := range o.tunnels {
 		status := p.Status().Status
 		switch status {

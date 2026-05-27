@@ -82,7 +82,7 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "invalid provider type", http.StatusBadRequest)
 				return
 			}
-			provider = tunnel.NewGenericProvider(id, req.Name, req.Type, pDef.Command, req.Config)
+			provider = tunnel.NewGenericProvider(id, req.Name, req.Type, pDef.Command, pDef.Regex, req.Config)
 		}
 
 		if isUpdate {

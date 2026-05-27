@@ -97,8 +97,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderDynamicFields = (providerName) => {
         document.querySelectorAll('.dynamic-field').forEach(el => el.remove());
-        const provider = globalProviders.find(p => p.name === providerName);
-        if (!provider || !provider.variables) return;
+
+        const builtIn = [
+            { name: 'cloudflare', variables: [] }, // Handled by static fields
+            { name: 'ngrok', variables: [] }       // Handled by static fields
+        ];
+
+        const provider = [...builtIn, ...globalProviders].find(p => p.name === providerName);
+        if (!provider || !provider.variables || provider.variables.length === 0) return;
 
         const container = tunnelForm.querySelector('.grid');
         provider.variables.forEach(v => {
@@ -169,16 +175,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (providerGrid) {
-                providerGrid.innerHTML = globalProviders.map(p => `
+                const builtIn = [
+                    { name: 'Cloudflare', type: 'Built-in Engine', command: 'cloudflared tunnel --url ${Port}', variables: ['Port'], builtIn: true },
+                    { name: 'Ngrok', type: 'Built-in Engine', command: 'ngrok-sdk-native', variables: ['Port', 'Token'], builtIn: true }
+                ];
+                const allProviders = [...builtIn, ...globalProviders.map(p => ({...p, type: 'Custom Engine'}))];
+
+                providerGrid.innerHTML = allProviders.map(p => `
                     <div class="card p-8 flex flex-col space-y-6">
                         <div class="flex justify-between items-start">
                             <div>
                                 <h3 class="text-xl font-black text-white">${p.name}</h3>
-                                <p class="text-[10px] text-[#8b949e] font-bold uppercase tracking-widest mt-1">Custom Engine</p>
+                                <p class="text-[10px] text-[#8b949e] font-bold uppercase tracking-widest mt-1">${p.type}</p>
                             </div>
+                            ${p.builtIn ? '' : `
                             <button onclick="deleteProvider('${p.name}')" class="text-red-500 hover:text-red-400">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
+                            `}
                         </div>
                         <div class="bg-[#0b0d11] p-4 rounded-xl border border-[#21262d]">
                             <code class="text-[11px] text-[#a371f7] break-all">${p.command}</code>
