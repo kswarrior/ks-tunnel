@@ -93,6 +93,10 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                 <span>Tunnels</span>
             </a>
+            <a href="#" data-section="providers" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-sm font-semibold text-[#8b949e] hover:text-white transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <span>Providers</span>
+            </a>
             <a href="#" data-section="settings" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-sm font-semibold text-[#8b949e] hover:text-white transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <span>Settings</span>
@@ -196,6 +200,24 @@
             </div>
         </section>
 
+        <!-- Providers Section -->
+        <section id="section-providers" class="hidden space-y-10">
+            <div class="flex justify-between items-end">
+                <div class="flex flex-col space-y-2">
+                    <h2 class="text-3xl font-black text-white">Providers</h2>
+                    <p class="text-sm text-[#8b949e]">Engine definitions for reverse tunnel binaries.</p>
+                </div>
+                <button onclick="document.getElementById('provider-modal').classList.remove('hidden')" class="btn-purple px-8 py-3 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(163,113,247,0.3)] flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M12 4v16m8-8H4"></path></svg>
+                    New Provider
+                </button>
+            </div>
+
+            <div id="provider-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Provider Cards will be inserted here -->
+            </div>
+        </section>
+
         <!-- Settings Section -->
         <section id="section-settings" class="hidden space-y-10">
             <div class="flex flex-col space-y-2">
@@ -268,6 +290,35 @@
                     <div class="flex flex-col md:flex-row justify-end space-y-4 md:space-y-0 md:space-x-6 pt-10">
                         <button type="button" onclick="closeModal('add-modal')" class="px-8 py-5 text-sm font-bold text-[#8b949e] hover:text-white transition-colors">Discard Changes</button>
                         <button type="submit" class="btn-purple px-12 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl active:scale-95 transition-all">Execute Node</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Provider Modal -->
+    <div id="provider-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" onclick="closeModal('provider-modal')"></div>
+        <div class="card w-full max-w-xl relative z-10 shadow-2xl overflow-hidden border-t-4 border-[#a371f7]">
+            <div class="p-8 md:p-12">
+                <h2 class="text-2xl font-black mb-8 text-white">Add Provider Engine</h2>
+                <form id="provider-form" class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Provider Name</label>
+                        <input type="text" name="name" placeholder="e.g. My Custom Proxy" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white focus:border-[#a371f7] outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Execution Command</label>
+                        <input type="text" name="command" placeholder="example --port ${Port} --token ${Token}" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white font-mono text-sm focus:border-[#a371f7] outline-none" required>
+                        <p class="mt-2 text-[9px] text-[#8b949e]">Use ${Variable} for dynamic fields.</p>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Public URL Regex (Optional)</label>
+                        <input type="text" name="regex" placeholder="https://[a-z0-9-]+\.example\.com" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white font-mono text-sm focus:border-[#a371f7] outline-none">
+                    </div>
+                    <div class="flex justify-end space-x-4 pt-6">
+                        <button type="button" onclick="closeModal('provider-modal')" class="text-sm font-bold text-[#8b949e] hover:text-white">Cancel</button>
+                        <button type="submit" class="btn-purple px-10 py-4 rounded-xl font-black uppercase tracking-widest text-xs">Save Engine</button>
                     </div>
                 </form>
             </div>

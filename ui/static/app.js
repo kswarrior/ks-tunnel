@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Navigation Logic
     const navLinks = document.querySelectorAll('.nav-link');
-    const sections = ['dashboard', 'tunnels', 'settings'];
+    const sections = ['dashboard', 'tunnels', 'providers', 'settings'];
     const menuToggle = document.getElementById('menu-toggle');
     const mobileMenu = document.getElementById('mobile-menu');
     const backdrop = document.getElementById('menu-backdrop');
@@ -86,13 +86,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // API Handling
     const tunnelGrid = document.getElementById('tunnel-grid');
+    const providerGrid = document.getElementById('provider-grid');
     const tunnelForm = document.getElementById('tunnel-form');
+    const providerForm = document.getElementById('provider-form');
     const typeSelect = tunnelForm.querySelector('select[name="type"]');
     const ngrokTokenField = document.getElementById('ngrok-token-field');
     const modalTitle = document.getElementById('modal-title');
 
+    let globalProviders = [];
+
+    const renderDynamicFields = (providerName) => {
+        document.querySelectorAll('.dynamic-field').forEach(el => el.remove());
+        const provider = globalProviders.find(p => p.name === providerName);
+        if (!provider || !provider.variables) return;
+
+        const container = tunnelForm.querySelector('.grid');
+        provider.variables.forEach(v => {
+            const div = document.createElement('div');
+            div.className = 'dynamic-field space-y-6';
+            div.innerHTML = `
+                <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">${v}</label>
+                <input type="text" name="config_${v}" placeholder="Enter ${v}" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all placeholder:text-[#30363d]" required>
+            `;
+            container.appendChild(div);
+        });
+    };
+
     typeSelect.addEventListener('change', () => {
-        ngrokTokenField.classList.toggle('hidden', typeSelect.value !== 'ngrok');
+        const val = typeSelect.value;
+        ngrokTokenField.classList.toggle('hidden', val !== 'ngrok');
+        renderDynamicFields(val);
     });
 
     window.closeModal = (id) => {
@@ -101,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tunnelForm.reset();
             tunnelForm.id.value = '';
             modalTitle.innerText = 'Create Node';
+            document.querySelectorAll('.dynamic-field').forEach(el => el.remove());
         }
     };
 
@@ -118,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setStat('stat-running', stats.running);
             setStat('stat-starting', stats.starting);
             setStat('stat-error', stats.error);
+            setStat('stat-providers', stats.providers);
 
             if (pieChart) {
                 pieChart.data.datasets[0].data = [stats.running, stats.starting, stats.error, stats.stopped];
@@ -127,6 +152,70 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to fetch stats:', err);
         }
     };
+
+    const fetchProviders = async () => {
+        try {
+            const response = await fetch('/api/providers');
+            globalProviders = await response.json();
+
+            const currentVal = typeSelect.value;
+            typeSelect.innerHTML = `
+                <option value="cloudflare">Cloudflare Quick Tunnel</option>
+                <option value="ngrok">Ngrok SDK (Official)</option>
+                ${globalProviders.map(p => `<option value="${p.name}">${p.name}</option>`).join('')}
+            `;
+            if (globalProviders.some(p => p.name === currentVal) || ['cloudflare', 'ngrok'].includes(currentVal)) {
+                typeSelect.value = currentVal;
+            }
+
+            if (providerGrid) {
+                providerGrid.innerHTML = globalProviders.map(p => `
+                    <div class="card p-8 flex flex-col space-y-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xl font-black text-white">${p.name}</h3>
+                                <p class="text-[10px] text-[#8b949e] font-bold uppercase tracking-widest mt-1">Custom Engine</p>
+                            </div>
+                            <button onclick="deleteProvider('${p.name}')" class="text-red-500 hover:text-red-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                        <div class="bg-[#0b0d11] p-4 rounded-xl border border-[#21262d]">
+                            <code class="text-[11px] text-[#a371f7] break-all">${p.command}</code>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            ${(p.variables || []).map(v => `<span class="px-2 py-1 bg-[#1c2128] rounded text-[9px] font-black text-white uppercase border border-[#21262d]">${v}</span>`).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (err) {
+            console.error('Failed to fetch providers:', err);
+        }
+    };
+
+    window.deleteProvider = async (name) => {
+        if (!confirm('Delete this provider engine?')) return;
+        const res = await fetch(`/api/providers?name=${encodeURIComponent(name)}`, {
+            method: 'DELETE'
+        });
+        if (res.ok) fetchProviders();
+    };
+
+    providerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(providerForm).entries());
+        const res = await fetch('/api/providers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (res.ok) {
+            closeModal('provider-modal');
+            fetchProviders();
+            updateStats();
+        }
+    });
 
     const fetchTunnels = async () => {
         try {
@@ -232,9 +321,24 @@ document.addEventListener('DOMContentLoaded', () => {
     tunnelForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(tunnelForm);
-        const data = Object.fromEntries(formData.entries());
+        const rawData = Object.fromEntries(formData.entries());
 
-        if (!data.local_addr.includes(':')) {
+        const data = {
+            id: rawData.id,
+            name: rawData.name,
+            type: rawData.type,
+            local_addr: rawData.local_addr,
+            token: rawData.token,
+            config: {}
+        };
+
+        Object.keys(rawData).forEach(key => {
+            if (key.startsWith('config_')) {
+                data.config[key.replace('config_', '')] = rawData[key];
+            }
+        });
+
+        if (!data.local_addr.includes(':') && data.local_addr !== "") {
             data.local_addr = `localhost:${data.local_addr}`;
         }
 
@@ -245,8 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (response.ok) {
-            document.getElementById('add-modal').classList.add('hidden');
-            tunnelForm.reset();
+            closeModal('add-modal');
             fetchTunnels();
             updateStats();
         } else {
@@ -300,6 +403,16 @@ document.addEventListener('DOMContentLoaded', () => {
         tunnelForm.type.value = tunnel.type;
         tunnelForm.local_addr.value = tunnel.local_addr;
         ngrokTokenField.classList.toggle('hidden', tunnel.type !== 'ngrok');
+
+        renderDynamicFields(tunnel.type);
+        // Fill dynamic fields
+        if (tunnel.config) {
+            Object.keys(tunnel.config).forEach(k => {
+                const input = tunnelForm.querySelector(`input[name="config_${k}"]`);
+                if (input) input.value = tunnel.config[k];
+            });
+        }
+
         document.getElementById('add-modal').classList.remove('hidden');
     };
 
@@ -333,9 +446,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Initial load and polling
+    fetchProviders();
     fetchTunnels();
     updateStats();
     setInterval(() => {
+        fetchProviders();
         fetchTunnels();
         updateStats();
     }, 5000);

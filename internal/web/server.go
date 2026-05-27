@@ -32,6 +32,7 @@ func (s *Server) Router() *http.ServeMux {
 	mux.HandleFunc("/api/tunnels/restart", s.handleRestartTunnel)
 	mux.HandleFunc("/api/tunnels/delete", s.handleDeleteTunnel)
 	mux.HandleFunc("/api/tunnels/logs", s.handleLogs)
+	mux.HandleFunc("/api/providers", s.handleProviders)
 	mux.HandleFunc("/api/stats", s.handleStats)
 	return mux
 }
@@ -51,11 +52,12 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(tunnels)
 	case http.MethodPost:
 		var req struct {
-			ID        string `json:"id"`
-			Name      string `json:"name"`
-			Type      string `json:"type"`
-			LocalAddr string `json:"local_addr"`
-			Token     string `json:"token"`
+			ID        string            `json:"id"`
+			Name      string            `json:"name"`
+			Type      string            `json:"type"`
+			LocalAddr string            `json:"local_addr"`
+			Token     string            `json:"token"`
+			Config    map[string]string `json:"config"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -74,8 +76,13 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 		} else if req.Type == "cloudflare" {
 			provider = tunnel.NewCloudflareProvider(id, req.Name, req.LocalAddr)
 		} else {
-			http.Error(w, "invalid provider type", http.StatusBadRequest)
-			return
+			// Check if it's a custom provider
+			pDef, ok := s.orch.GetProvider(req.Type)
+			if !ok {
+				http.Error(w, "invalid provider type", http.StatusBadRequest)
+				return
+			}
+			provider = tunnel.NewGenericProvider(id, req.Name, req.Type, pDef.Command, req.Config)
 		}
 
 		if isUpdate {
@@ -176,6 +183,31 @@ func (s *Server) handleDeleteTunnel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleProviders(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		json.NewEncoder(w).Encode(s.orch.ListProviders())
+	case http.MethodPost:
+		var def orchestrator.ProviderDef
+		if err := json.NewDecoder(r.Body).Decode(&def); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		s.orch.AddProvider(def)
+		w.WriteHeader(http.StatusCreated)
+	case http.MethodDelete:
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, "missing name", http.StatusBadRequest)
+			return
+		}
+		s.orch.DeleteProvider(name)
+		w.WriteHeader(http.StatusOK)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {

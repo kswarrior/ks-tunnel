@@ -15,10 +15,11 @@ type TunnelInfo struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
 	Type      string `json:"type"` // e.g., "ngrok", "cloudflare"
-	LocalAddr string `json:"local_addr"`
-	PublicURL string `json:"public_url"`
-	Status    Status `json:"status"`
-	Error     string `json:"error,omitempty"`
+	LocalAddr string            `json:"local_addr"`
+	PublicURL string            `json:"public_url"`
+	Status    Status            `json:"status"`
+	Error     string            `json:"error,omitempty"`
+	Config    map[string]string `json:"config,omitempty"`
 }
 
 type TunnelProvider interface {

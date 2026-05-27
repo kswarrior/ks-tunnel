@@ -3,19 +3,31 @@ package orchestrator
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sync"
 
 	"github.com/username/kstunnel/internal/tunnel"
 )
 
+var varRegex = regexp.MustCompile(`\$\{([a-zA-Z0-9_]+)\}`)
+
+type ProviderDef struct {
+	Name      string   `json:"name"`
+	Type      string   `json:"type"`
+	Command   string   `json:"command"`
+	Variables []string `json:"variables"`
+}
+
 type Orchestrator struct {
-	tunnels map[string]tunnel.TunnelProvider
-	mu      sync.RWMutex
+	tunnels   map[string]tunnel.TunnelProvider
+	providers map[string]ProviderDef
+	mu        sync.RWMutex
 }
 
 func NewOrchestrator() *Orchestrator {
 	return &Orchestrator{
-		tunnels: make(map[string]tunnel.TunnelProvider),
+		tunnels:   make(map[string]tunnel.TunnelProvider),
+		providers: make(map[string]ProviderDef),
 	}
 }
 
@@ -124,11 +136,12 @@ func (o *Orchestrator) ListTunnels() []tunnel.TunnelInfo {
 }
 
 type Stats struct {
-	Total    int `json:"total"`
-	Running  int `json:"running"`
-	Starting int `json:"starting"`
-	Error    int `json:"error"`
-	Stopped  int `json:"stopped"`
+	Total     int `json:"total"`
+	Running   int `json:"running"`
+	Starting  int `json:"starting"`
+	Error     int `json:"error"`
+	Stopped   int `json:"stopped"`
+	Engines   int `json:"engines"`
 }
 
 func (o *Orchestrator) GetStats() Stats {
@@ -137,6 +150,7 @@ func (o *Orchestrator) GetStats() Stats {
 
 	var s Stats
 	s.Total = len(o.tunnels)
+	s.Engines = len(o.providers)
 	for _, p := range o.tunnels {
 		status := p.Status().Status
 		switch status {
@@ -151,6 +165,47 @@ func (o *Orchestrator) GetStats() Stats {
 		}
 	}
 	return s
+}
+
+func (o *Orchestrator) AddProvider(def ProviderDef) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	// Auto-extract variables from command
+	matches := varRegex.FindAllStringSubmatch(def.Command, -1)
+	vars := make(map[string]bool)
+	for _, m := range matches {
+		vars[m[1]] = true
+	}
+	def.Variables = nil
+	for v := range vars {
+		def.Variables = append(def.Variables, v)
+	}
+
+	o.providers[def.Name] = def
+}
+
+func (o *Orchestrator) GetProvider(name string) (ProviderDef, bool) {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	p, ok := o.providers[name]
+	return p, ok
+}
+
+func (o *Orchestrator) ListProviders() []ProviderDef {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	res := make([]ProviderDef, 0, len(o.providers))
+	for _, v := range o.providers {
+		res = append(res, v)
+	}
+	return res
+}
+
+func (o *Orchestrator) DeleteProvider(name string) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	delete(o.providers, name)
 }
 
 func (o *Orchestrator) StopAll() {
