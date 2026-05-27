@@ -22,7 +22,16 @@ func (s *Server) Router() *http.ServeMux {
 	mux.Handle("/", http.FileServer(http.Dir("./ui/static")))
 	mux.HandleFunc("/api/tunnels", s.handleTunnels)
 	mux.HandleFunc("/api/tunnels/stop", s.handleStopTunnel)
+	mux.HandleFunc("/api/stats", s.handleStats)
 	return mux
+}
+
+func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	json.NewEncoder(w).Encode(s.orch.GetStats())
 }
 
 func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {

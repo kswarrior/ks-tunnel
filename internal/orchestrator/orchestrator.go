@@ -62,6 +62,36 @@ func (o *Orchestrator) ListTunnels() []tunnel.TunnelInfo {
 	return infos
 }
 
+type Stats struct {
+	Total    int `json:"total"`
+	Running  int `json:"running"`
+	Starting int `json:"starting"`
+	Error    int `json:"error"`
+	Stopped  int `json:"stopped"`
+}
+
+func (o *Orchestrator) GetStats() Stats {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
+	var s Stats
+	s.Total = len(o.tunnels)
+	for _, p := range o.tunnels {
+		status := p.Status().Status
+		switch status {
+		case tunnel.StatusRunning:
+			s.Running++
+		case tunnel.StatusStarting:
+			s.Starting++
+		case tunnel.StatusError:
+			s.Error++
+		case tunnel.StatusStopped:
+			s.Stopped++
+		}
+	}
+	return s
+}
+
 func (o *Orchestrator) StopAll() {
 	o.mu.RLock()
 	ids := make([]string, 0, len(o.tunnels))
