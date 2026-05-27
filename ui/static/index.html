@@ -3,132 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KS Tunnel - Reverse Tunnel Manager</title>
+    <title>KS Tunnel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg-color: #0b0d11;
+            --card-bg: #11141a;
+            --accent-color: #a371f7;
+            --text-primary: #ffffff;
+            --text-secondary: #8b949e;
+            --border-color: #21262d;
+        }
         body {
-            background-color: #0d1117;
-            color: #c9d1d9;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             font-family: 'Inter', sans-serif;
         }
         .sidebar {
-            background-color: #161b22;
-            border-right: 1px solid #30363d;
+            background-color: #0b0d11;
+            border-right: 1px solid var(--border-color);
         }
         .card {
-            background-color: #161b22;
-            border: 1px solid #30363d;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
-            transition: transform 0.2s, border-color 0.2s;
-        }
-        .card:hover {
-            border-color: #58a6ff;
         }
         .active-link {
-            background-color: #21262d;
-            color: #58a6ff;
-            border-left: 4px solid #58a6ff;
+            color: var(--accent-color);
+            background: rgba(163, 113, 247, 0.1);
+            border-left: 3px solid var(--accent-color);
         }
-        .status-running { color: #3fb950; background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.2); }
-        .status-starting { color: #d29922; background: rgba(210, 153, 34, 0.1); border: 1px solid rgba(210, 153, 34, 0.2); }
-        .status-error { color: #f85149; background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.2); }
-        .status-stopped { color: #8b949e; background: rgba(139, 148, 158, 0.1); border: 1px solid rgba(139, 148, 158, 0.2); }
+        .btn-purple {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        .btn-purple:hover {
+            background-color: #b78cf9;
+        }
 
-        #mobile-menu {
-            transition: transform 0.3s ease-in-out;
+        /* Mobile responsive dashboard visibility */
+        @media (max-width: 767px) {
+            #section-dashboard {
+                display: none !important;
+            }
         }
-        .menu-hidden {
-            transform: translateX(-100%);
+
+        .dropdown-menu {
+            background-color: #1c2128;
+            border: 1px solid #30363d;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            z-index: 100;
+        }
+        .dropdown-item:hover {
+            background-color: #30363d;
         }
     </style>
 </head>
 <body class="flex flex-col md:flex-row min-h-screen">
 
     <!-- Mobile Header -->
-    <header class="md:hidden flex items-center p-4 bg-[#161b22] border-b border-[#30363d] sticky top-0 z-50">
+    <header class="md:hidden flex items-center p-4 border-b border-[#21262d] sticky top-0 z-50 bg-[#0b0d11]">
         <button id="menu-toggle" class="p-2 text-[#8b949e] mr-4">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
         <div class="flex items-center space-x-2">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3z"></path></svg>
-            <span class="font-bold text-white">KS Tunnel</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a371f7" stroke-width="2"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3z"></path></svg>
+            <span class="font-bold text-white tracking-tight">KS Tunnel</span>
         </div>
     </header>
 
     <!-- Mobile Backdrop -->
-    <div id="menu-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
+    <div id="menu-backdrop" class="fixed inset-0 bg-black bg-opacity-70 z-30 hidden md:hidden"></div>
 
     <!-- Sidebar -->
-    <aside id="mobile-menu" class="fixed inset-y-0 left-0 z-40 w-64 sidebar transform md:relative md:translate-x-0 -translate-x-full md:flex flex-col transition-transform duration-300 ease-in-out">
-        <div class="p-6 hidden md:flex items-center space-x-3 mb-6">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3z"></path></svg>
-            <h1 class="text-xl font-bold text-white">KS Tunnel</h1>
+    <aside id="mobile-menu" class="fixed inset-y-0 left-0 z-[60] w-64 sidebar transform md:relative md:translate-x-0 -translate-x-full flex flex-col transition-transform duration-300 ease-in-out">
+        <div class="p-8 hidden md:flex items-center space-x-3 mb-4">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a371f7" stroke-width="2.5"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3z"></path></svg>
+            <h1 class="text-xl font-black text-white uppercase tracking-widest">KS Tunnel</h1>
         </div>
 
-        <nav class="flex-1 px-4 space-y-2">
-            <a href="#" data-section="dashboard" class="nav-link active-link flex items-center space-x-3 p-3 rounded-lg text-sm font-medium">
+        <nav class="flex-1 px-4 space-y-1">
+            <a href="#" data-section="dashboard" class="nav-link active-link flex items-center space-x-3 p-3 rounded-lg text-sm font-semibold transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                 <span>Dashboard</span>
             </a>
-            <a href="#" data-section="tunnels" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-sm font-medium text-[#8b949e] hover:bg-[#21262d] hover:text-white">
+            <a href="#" data-section="tunnels" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-sm font-semibold text-[#8b949e] hover:text-white transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                 <span>Tunnels</span>
             </a>
-            <a href="#" data-section="settings" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-sm font-medium text-[#8b949e] hover:bg-[#21262d] hover:text-white">
+            <a href="#" data-section="settings" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-sm font-semibold text-[#8b949e] hover:text-white transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <span>Settings</span>
             </a>
         </nav>
 
-        <div class="p-4 border-t border-[#30363d]">
-            <div class="flex items-center space-x-3 text-xs text-[#8b949e]">
-                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span>Service Connected</span>
+        <div class="p-6 mt-auto">
+            <div class="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-tighter text-[#58a6ff]">
+                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_#58a6ff]"></div>
+                <span>Core Engine v1.0</span>
             </div>
         </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-6 md:p-10 overflow-y-auto">
+    <main class="flex-1 p-6 md:p-12 overflow-y-auto relative z-0">
 
         <!-- Dashboard Section -->
-        <section id="section-dashboard" class="space-y-8">
-            <h2 class="text-3xl font-bold text-white">System Overview</h2>
+        <section id="section-dashboard" class="space-y-10">
+            <div class="flex flex-col space-y-2">
+                <h2 class="text-3xl font-black text-white">Dashboard</h2>
+                <p class="text-sm text-[#8b949e]">Real-time system health and analytics overview.</p>
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="card p-6 flex flex-col justify-between">
-                    <span class="text-[#8b949e] text-sm font-medium">Total Tunnels</span>
-                    <span id="stat-total" class="text-4xl font-bold text-white mt-2">0</span>
+                <div class="card p-8 flex flex-col items-center text-center">
+                    <span class="text-[#8b949e] text-[10px] font-bold uppercase tracking-widest mb-4">Total Nodes</span>
+                    <span id="stat-total" class="text-5xl font-black text-white">0</span>
                 </div>
-                <div class="card p-6 border-l-4 border-green-500">
-                    <span class="text-[#8b949e] text-sm font-medium">Running (Health)</span>
-                    <span id="stat-running" class="text-4xl font-bold text-green-500 mt-2">0</span>
+                <div class="card p-8 flex flex-col items-center text-center">
+                    <span class="text-[#8b949e] text-[10px] font-bold uppercase tracking-widest mb-4">Healthy</span>
+                    <span id="stat-running" class="text-5xl font-black text-[#3fb950]">0</span>
                 </div>
-                <div class="card p-6 border-l-4 border-yellow-500">
-                    <span class="text-[#8b949e] text-sm font-medium">Starting</span>
-                    <span id="stat-starting" class="text-4xl font-bold text-yellow-500 mt-2">0</span>
+                <div class="card p-8 flex flex-col items-center text-center">
+                    <span class="text-[#8b949e] text-[10px] font-bold uppercase tracking-widest mb-4">Starting</span>
+                    <span id="stat-starting" class="text-5xl font-black text-[#d29922]">0</span>
                 </div>
-                <div class="card p-6 border-l-4 border-red-500">
-                    <span class="text-[#8b949e] text-sm font-medium">Errors / Down</span>
-                    <span id="stat-error" class="text-4xl font-bold text-red-500 mt-2">0</span>
+                <div class="card p-8 flex flex-col items-center text-center">
+                    <span class="text-[#8b949e] text-[10px] font-bold uppercase tracking-widest mb-4">Critical</span>
+                    <span id="stat-error" class="text-5xl font-black text-[#f85149]">0</span>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="card p-6">
-                    <h3 class="text-lg font-semibold mb-4 text-white">Status Distribution</h3>
+                <div class="card p-8">
+                    <h3 class="text-sm font-bold text-[#8b949e] uppercase mb-8 text-center">Node Distribution</h3>
                     <div class="h-64 flex justify-center">
                         <canvas id="pieChart"></canvas>
                     </div>
                 </div>
-                <div class="card p-6">
-                    <h3 class="text-lg font-semibold mb-4 text-white">Activity Log</h3>
-                    <div class="space-y-4 max-h-64 overflow-y-auto pr-2">
-                        <div class="flex items-center space-x-3 text-sm">
-                            <span class="text-[#8b949e]">Just now</span>
-                            <span class="text-white">Dashboard loaded successfully.</span>
+                <div class="card p-8 flex flex-col">
+                    <h3 class="text-sm font-bold text-[#8b949e] uppercase mb-6">Recent Activity</h3>
+                    <div class="flex-1 space-y-4 overflow-y-auto">
+                        <div class="text-xs flex justify-between items-center border-b border-[#21262d] pb-2">
+                            <span class="text-white">System initialization complete.</span>
+                            <span class="text-[#8b949e]">Now</span>
                         </div>
                     </div>
                 </div>
@@ -136,52 +156,46 @@
         </section>
 
         <!-- Tunnels Section -->
-        <section id="section-tunnels" class="hidden space-y-8">
-            <div class="flex justify-between items-center">
-                <h2 class="text-3xl font-bold text-white">Active Tunnels</h2>
-                <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="bg-[#238636] hover:bg-[#2ea043] text-white px-6 py-2 rounded-full font-bold transition-all shadow-lg flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Add Tunnel
+        <section id="section-tunnels" class="hidden space-y-10">
+            <div class="flex justify-between items-end">
+                <div class="flex flex-col space-y-2">
+                    <h2 class="text-3xl font-black text-white">Tunnels</h2>
+                    <p class="text-sm text-[#8b949e]">Manage and monitor your active reverse tunnels.</p>
+                </div>
+                <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="btn-purple px-8 py-3 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(163,113,247,0.3)] flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M12 4v16m8-8H4"></path></svg>
+                    New Tunnel
                 </button>
             </div>
 
-            <div id="tunnel-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div id="tunnel-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
                 <!-- Tunnel Cards will be inserted here -->
             </div>
         </section>
 
         <!-- Settings Section -->
-        <section id="section-settings" class="hidden space-y-8">
-            <h2 class="text-3xl font-bold text-white">System Settings</h2>
+        <section id="section-settings" class="hidden space-y-10">
+            <div class="flex flex-col space-y-2">
+                <h2 class="text-3xl font-black text-white">Settings</h2>
+                <p class="text-sm text-[#8b949e]">Configure global parameters and integrations.</p>
+            </div>
 
-            <div class="max-w-2xl space-y-6">
-                <div class="card p-8">
-                    <h3 class="text-xl font-semibold mb-6 text-white border-b border-[#30363d] pb-4">General Configuration</h3>
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between">
+            <div class="max-w-3xl space-y-8">
+                <div class="card p-10">
+                    <h3 class="text-lg font-bold mb-8 text-white flex items-center">
+                        <svg class="w-5 h-5 mr-3 text-[#a371f7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        Engine Configuration
+                    </h3>
+                    <div class="space-y-6">
+                        <div class="flex items-center justify-between p-4 bg-[#0b0d11] rounded-xl">
                             <div>
-                                <div class="text-white font-medium">Automatic Restart</div>
-                                <div class="text-[#8b949e] text-xs">Restart tunnels automatically on failure</div>
+                                <div class="text-sm font-bold">Auto-Resume</div>
+                                <div class="text-[10px] text-[#8b949e]">Reconnect tunnels on system startup</div>
                             </div>
-                            <input type="checkbox" checked class="w-5 h-5 accent-[#58a6ff]">
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="text-white font-medium">Notification Alerts</div>
-                                <div class="text-[#8b949e] text-xs">Notify via system alerts on tunnel status changes</div>
+                            <div class="w-12 h-6 bg-[#30363d] rounded-full relative cursor-pointer">
+                                <div class="absolute right-1 top-1 w-4 h-4 bg-[#a371f7] rounded-full"></div>
                             </div>
-                            <input type="checkbox" class="w-5 h-5 accent-[#58a6ff]">
                         </div>
-                    </div>
-                </div>
-
-                <div class="card p-8">
-                    <h3 class="text-xl font-semibold mb-6 text-white border-b border-[#30363d] pb-4">External Integrations</h3>
-                    <div class="space-y-4">
-                        <label class="block">
-                            <span class="text-white text-sm">Default Cloudflare Binary Path</span>
-                            <input type="text" value="/usr/local/bin/cloudflared" class="mt-2 w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-3 text-sm focus:border-[#58a6ff] outline-none">
-                        </label>
                     </div>
                 </div>
             </div>
@@ -190,35 +204,36 @@
     </main>
 
     <!-- Modal -->
-    <div id="add-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black bg-opacity-70 backdrop-blur-sm" onclick="document.getElementById('add-modal').classList.add('hidden')"></div>
-        <div class="card p-8 w-full max-w-lg relative z-10 shadow-2xl">
-            <h2 class="text-2xl font-bold mb-8 text-white">Deploy New Tunnel</h2>
+    <div id="add-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black bg-opacity-80 backdrop-blur-md" onclick="document.getElementById('add-modal').classList.add('hidden')"></div>
+        <div class="card p-10 w-full max-w-xl relative z-10 shadow-2xl overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-[#a371f7]"></div>
+            <h2 class="text-2xl font-black mb-8 text-white">Create Node</h2>
             <form id="tunnel-form" class="space-y-6">
                 <div>
-                    <label class="block text-sm font-semibold mb-2 text-[#8b949e]">TUNNEL NAME</label>
-                    <input type="text" name="name" placeholder="e.g. My Awesome API" class="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-4 text-white focus:border-[#58a6ff] outline-none transition-all" required>
+                    <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Deployment Name</label>
+                    <input type="text" name="name" placeholder="Service Identifier" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white focus:border-[#a371f7] outline-none transition-all placeholder:text-[#30363d]" required>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-semibold mb-2 text-[#8b949e]">PROVIDER</label>
-                        <select name="type" class="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-4 text-white focus:border-[#58a6ff] outline-none cursor-pointer">
+                        <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Provider</label>
+                        <select name="type" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white focus:border-[#a371f7] outline-none cursor-pointer appearance-none">
                             <option value="cloudflare">Cloudflare</option>
                             <option value="ngrok">Ngrok SDK</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold mb-2 text-[#8b949e]">LOCAL PORT</label>
-                        <input type="number" name="local_addr" placeholder="8080" class="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-4 text-white focus:border-[#58a6ff] outline-none transition-all" required>
+                        <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Internal Port</label>
+                        <input type="number" name="local_addr" placeholder="8080" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white focus:border-[#a371f7] outline-none transition-all placeholder:text-[#30363d]" required>
                     </div>
                 </div>
                 <div id="ngrok-token-field" class="hidden">
-                    <label class="block text-sm font-semibold mb-2 text-[#8b949e]">NGROK AUTH TOKEN</label>
-                    <input type="password" name="token" class="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-4 text-white focus:border-[#58a6ff] outline-none transition-all">
+                    <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Ngrok Authentication</label>
+                    <input type="password" name="token" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white focus:border-[#a371f7] outline-none transition-all">
                 </div>
-                <div class="flex justify-end space-x-4 pt-4">
-                    <button type="button" onclick="document.getElementById('add-modal').classList.add('hidden')" class="px-6 py-3 text-[#8b949e] font-semibold hover:text-white transition-colors">Cancel</button>
-                    <button type="submit" class="bg-[#238636] hover:bg-[#2ea043] text-white px-8 py-3 rounded-lg font-bold shadow-lg transform active:scale-95 transition-all">Launch Tunnel</button>
+                <div class="flex justify-end space-x-6 pt-6">
+                    <button type="button" onclick="document.getElementById('add-modal').classList.add('hidden')" class="text-sm font-bold text-[#8b949e] hover:text-white transition-colors">Abort</button>
+                    <button type="submit" class="btn-purple px-10 py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all">Execute Deployment</button>
                 </div>
             </form>
         </div>

@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/username/kstunnel"
 	"github.com/username/kstunnel/internal/orchestrator"
 	"github.com/username/kstunnel/internal/web"
 )
@@ -18,7 +19,7 @@ func main() {
 	flag.Parse()
 
 	orch := orchestrator.NewOrchestrator()
-	server := web.NewServer(orch)
+	server := web.NewServer(orch, kstunnel.StaticFiles)
 
 	addr := fmt.Sprintf(":%d", *port)
 	fmt.Printf("KS Tunnel starting on http://localhost%s\n", addr)

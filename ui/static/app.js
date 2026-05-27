@@ -18,9 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const showSection = (sectionId) => {
         sections.forEach(s => {
-            document.getElementById(`section-${s}`).classList.add('hidden');
+            const el = document.getElementById(`section-${s}`);
+            if (el) el.classList.add('hidden');
         });
-        document.getElementById(`section-${sectionId}`).classList.remove('hidden');
+        const target = document.getElementById(`section-${sectionId}`);
+        if (target) target.classList.remove('hidden');
 
         navLinks.forEach(link => {
             if (link.dataset.section === sectionId) {
@@ -48,29 +50,39 @@ document.addEventListener('DOMContentLoaded', () => {
     backdrop.addEventListener('click', () => toggleMenu(false));
 
     // Charting Logic
-    const ctx = document.getElementById('pieChart').getContext('2d');
-    const pieChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Running', 'Starting', 'Error', 'Stopped'],
-            datasets: [{
-                data: [0, 0, 0, 0],
-                backgroundColor: ['#3fb950', '#d29922', '#f85149', '#484f58'],
-                borderWidth: 0,
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { color: '#c9d1d9', font: { family: 'Inter' } }
+    const pieCanvas = document.getElementById('pieChart');
+    let pieChart = null;
+    if (pieCanvas) {
+        const ctx = pieCanvas.getContext('2d');
+        pieChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Healthy', 'Starting', 'Critical', 'Idle'],
+                datasets: [{
+                    data: [0, 0, 0, 0],
+                    backgroundColor: ['#3fb950', '#d29922', '#f85149', '#484f58'],
+                    borderWidth: 0,
+                    hoverOffset: 15,
+                    cutout: '75%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#8b949e',
+                            font: { family: 'Inter', weight: '600', size: 10 },
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    }
                 }
             }
-        }
-    });
+        });
+    }
 
     // API Handling
     const tunnelGrid = document.getElementById('tunnel-grid');
@@ -87,13 +99,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/stats');
             const stats = await response.json();
 
-            document.getElementById('stat-total').innerText = stats.total;
-            document.getElementById('stat-running').innerText = stats.running;
-            document.getElementById('stat-starting').innerText = stats.starting;
-            document.getElementById('stat-error').innerText = stats.error;
+            const setStat = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = val;
+            };
 
-            pieChart.data.datasets[0].data = [stats.running, stats.starting, stats.error, stats.stopped];
-            pieChart.update();
+            setStat('stat-total', stats.total);
+            setStat('stat-running', stats.running);
+            setStat('stat-starting', stats.starting);
+            setStat('stat-error', stats.error);
+
+            if (pieChart) {
+                pieChart.data.datasets[0].data = [stats.running, stats.starting, stats.error, stats.stopped];
+                pieChart.update();
+            }
         } catch (err) {
             console.error('Failed to fetch stats:', err);
         }
@@ -104,35 +123,47 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/tunnels');
             const tunnels = await response.json();
 
+            if (!tunnelGrid) return;
+
             tunnelGrid.innerHTML = tunnels.map(t => `
-                <div class="card p-6 flex flex-col justify-between space-y-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-lg font-bold text-white">${t.name}</h3>
-                            <span class="text-[10px] uppercase tracking-widest text-[#8b949e] font-bold">${t.type}</span>
+                <div class="card p-6 flex flex-col space-y-6 relative group overflow-visible">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 rounded-full status-${t.status.toLowerCase()} shadow-lg animate-pulse"></div>
+                            <h3 class="text-base font-black text-white truncate max-w-[150px]">${t.name}</h3>
                         </div>
-                        <span class="px-3 py-1 rounded-full text-[10px] font-bold status-${t.status.toLowerCase()}">
-                            ${t.status}
+
+                        <div class="relative dropdown-container">
+                            <button onclick="toggleDropdown(event, '${t.id}')" class="p-2 text-[#8b949e] hover:text-white rounded-lg hover:bg-[#21262d] transition-all">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
+                            </button>
+                            <div id="dropdown-${t.id}" class="hidden absolute right-0 mt-2 w-48 dropdown-menu rounded-xl py-2 overflow-hidden">
+                                <a href="#" class="block px-4 py-2 text-xs font-semibold text-white dropdown-item">Edit</a>
+                                <a href="#" onclick="stopTunnel('${t.id}')" class="block px-4 py-2 text-xs font-semibold text-white dropdown-item">Stop</a>
+                                <a href="#" class="block px-4 py-2 text-xs font-semibold text-white dropdown-item">Start</a>
+                                <a href="#" class="block px-4 py-2 text-xs font-semibold text-white dropdown-item">Restart</a>
+                                <div class="border-t border-[#30363d] my-1"></div>
+                                <a href="#" class="block px-4 py-2 text-xs font-semibold text-white dropdown-item">Logs</a>
+                                <a href="#" onclick="deleteTunnel('${t.id}')" class="block px-4 py-2 text-xs font-semibold text-red-400 dropdown-item">Delete</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-xs font-bold text-[#8b949e]">
+                            <svg class="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <span>${t.local_addr}</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded bg-[#21262d] text-[#a371f7] text-[9px] font-black uppercase tracking-widest border border-[#30363d]">
+                            ${t.type}
                         </span>
                     </div>
 
-                    <div class="space-y-2">
-                        <div class="flex items-center text-xs text-[#8b949e]">
-                            <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            <span>Local: ${t.local_addr}</span>
-                        </div>
-                        <div class="flex items-center text-sm font-medium text-[#58a6ff] truncate">
-                            <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    <div class="flex justify-between items-center bg-[#0b0d11] p-3 rounded-xl border border-[#21262d]">
+                        <div class="flex items-center text-[11px] font-medium text-[#58a6ff] truncate mr-4">
                             <a href="${t.public_url}" target="_blank" class="hover:underline">${t.public_url || 'Allocating...'}</a>
                         </div>
-                    </div>
-
-                    ${t.error ? `<div class="text-[10px] text-red-400 bg-red-900/20 p-2 rounded">${t.error}</div>` : ''}
-
-                    <div class="flex justify-end space-x-2 pt-2">
-                        <button onclick="stopTunnel('${t.id}')" class="p-2 text-[#8b949e] hover:text-red-500 transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                        <a href="${t.public_url}" target="_blank" class="text-[10px] font-black text-white uppercase tracking-wider hover:text-[#a371f7] transition-colors">Visit</a>
                     </div>
                 </div>
             `).join('');
@@ -140,6 +171,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to fetch tunnels:', err);
         }
     };
+
+    window.toggleDropdown = (e, id) => {
+        e.stopPropagation();
+        const el = document.getElementById(`dropdown-${id}`);
+        const all = document.querySelectorAll('.dropdown-menu');
+        all.forEach(d => { if(d.id !== `dropdown-${id}`) d.classList.add('hidden') });
+        el.classList.toggle('hidden');
+    };
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.add('hidden'));
+    });
 
     tunnelForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -178,6 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStats();
         }
     };
+
+    window.deleteTunnel = window.stopTunnel; // Simplification for demo
 
     // Initial load and polling
     fetchTunnels();

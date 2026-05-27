@@ -2,7 +2,9 @@ package web
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
+	"io/fs"
 	"net/http"
 
 	"github.com/username/kstunnel/internal/orchestrator"
@@ -10,16 +12,20 @@ import (
 )
 
 type Server struct {
-	orch *orchestrator.Orchestrator
+	orch   *orchestrator.Orchestrator
+	static embed.FS
 }
 
-func NewServer(orch *orchestrator.Orchestrator) *Server {
-	return &Server{orch: orch}
+func NewServer(orch *orchestrator.Orchestrator, static embed.FS) *Server {
+	return &Server{orch: orch, static: static}
 }
 
 func (s *Server) Router() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir("./ui/static")))
+
+	staticFS, _ := fs.Sub(s.static, "ui/static")
+	mux.Handle("/", http.FileServer(http.FS(staticFS)))
+
 	mux.HandleFunc("/api/tunnels", s.handleTunnels)
 	mux.HandleFunc("/api/tunnels/stop", s.handleStopTunnel)
 	mux.HandleFunc("/api/stats", s.handleStats)
