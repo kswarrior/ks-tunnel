@@ -17,6 +17,7 @@ type BinaryProvider struct {
 	status    Status
 	publicURL string
 	err       error
+	logs      []string
 	mu        sync.RWMutex
 }
 
@@ -69,14 +70,18 @@ func (p *BinaryProvider) Start(ctx context.Context) error {
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			line := scanner.Text()
+			p.mu.Lock()
+			p.logs = append(p.logs, line)
+			if len(p.logs) > 100 {
+				p.logs = p.logs[1:]
+			}
 			if p.publicURL == "" {
 				if match := re.FindString(line); match != "" {
-					p.mu.Lock()
 					p.publicURL = match
 					p.status = StatusRunning
-					p.mu.Unlock()
 				}
 			}
+			p.mu.Unlock()
 		}
 
 		err := cmd.Wait()
@@ -102,6 +107,14 @@ func (p *BinaryProvider) Stop() error {
 		return p.cmd.Process.Kill()
 	}
 	return nil
+}
+
+func (p *BinaryProvider) GetLogs() []string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	logs := make([]string, len(p.logs))
+	copy(logs, p.logs)
+	return logs
 }
 
 func (p *BinaryProvider) Status() TunnelInfo {

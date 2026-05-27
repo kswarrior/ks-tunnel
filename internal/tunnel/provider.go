@@ -25,4 +25,5 @@ type TunnelProvider interface {
 	Start(ctx context.Context) error
 	Stop() error
 	Status() TunnelInfo
+	GetLogs() []string
 }

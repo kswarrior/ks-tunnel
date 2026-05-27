@@ -27,7 +27,11 @@ func (s *Server) Router() *http.ServeMux {
 	mux.Handle("/", http.FileServer(http.FS(staticFS)))
 
 	mux.HandleFunc("/api/tunnels", s.handleTunnels)
+	mux.HandleFunc("/api/tunnels/start", s.handleStartTunnel)
 	mux.HandleFunc("/api/tunnels/stop", s.handleStopTunnel)
+	mux.HandleFunc("/api/tunnels/restart", s.handleRestartTunnel)
+	mux.HandleFunc("/api/tunnels/delete", s.handleDeleteTunnel)
+	mux.HandleFunc("/api/tunnels/logs", s.handleLogs)
 	mux.HandleFunc("/api/stats", s.handleStats)
 	return mux
 }
@@ -47,6 +51,7 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(tunnels)
 	case http.MethodPost:
 		var req struct {
+			ID        string `json:"id"`
 			Name      string `json:"name"`
 			Type      string `json:"type"`
 			LocalAddr string `json:"local_addr"`
@@ -57,7 +62,12 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		id := req.Name // For simplicity, use name as ID or generate one
+		id := req.ID
+		isUpdate := id != ""
+		if id == "" {
+			id = req.Name // Use name as ID for new tunnels if not provided
+		}
+
 		var provider tunnel.TunnelProvider
 		if req.Type == "ngrok" {
 			provider = tunnel.NewNgrokProvider(id, req.Name, req.LocalAddr, req.Token)
@@ -68,7 +78,20 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := s.orch.StartTunnel(context.Background(), provider); err != nil {
+		if isUpdate {
+			if err := s.orch.UpdateTunnel(id, provider); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			if err := s.orch.AddTunnel(provider); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// Always try to start (or restart) after create/edit
+		if err := s.orch.StartTunnel(context.Background(), id); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -79,12 +102,11 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleStopTunnel(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleStartTunnel(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
 	var req struct {
 		ID string `json:"id"`
 	}
@@ -92,11 +114,84 @@ func (s *Server) handleStopTunnel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if err := s.orch.StartTunnel(context.Background(), req.ID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
 
+func (s *Server) handleStopTunnel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	if err := s.orch.StopTunnel(req.ID); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleRestartTunnel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.orch.RestartTunnel(context.Background(), req.ID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleDeleteTunnel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.orch.DeleteTunnel(req.ID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.Error(w, "missing id", http.StatusBadRequest)
+		return
+	}
+	logs, err := s.orch.GetLogs(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	json.NewEncoder(w).Encode(logs)
 }

@@ -19,16 +19,43 @@ func NewOrchestrator() *Orchestrator {
 	}
 }
 
-func (o *Orchestrator) StartTunnel(ctx context.Context, provider tunnel.TunnelProvider) error {
+func (o *Orchestrator) AddTunnel(provider tunnel.TunnelProvider) error {
 	info := provider.Status()
-
 	o.mu.Lock()
+	defer o.mu.Unlock()
 	if _, exists := o.tunnels[info.ID]; exists {
-		o.mu.Unlock()
 		return fmt.Errorf("tunnel with ID %s already exists", info.ID)
 	}
 	o.tunnels[info.ID] = provider
+	return nil
+}
+
+func (o *Orchestrator) UpdateTunnel(id string, provider tunnel.TunnelProvider) error {
+	o.mu.Lock()
+	old, exists := o.tunnels[id]
+	if !exists {
+		o.mu.Unlock()
+		return fmt.Errorf("tunnel with ID %s not found", id)
+	}
+
+	// Stop the old one if it's running
+	if old.Status().Status == tunnel.StatusRunning {
+		old.Stop()
+	}
+
+	o.tunnels[id] = provider
 	o.mu.Unlock()
+	return nil
+}
+
+func (o *Orchestrator) StartTunnel(ctx context.Context, id string) error {
+	o.mu.RLock()
+	provider, exists := o.tunnels[id]
+	o.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("tunnel with ID %s not found", id)
+	}
 
 	return provider.Start(ctx)
 }
@@ -42,13 +69,47 @@ func (o *Orchestrator) StopTunnel(id string) error {
 		return fmt.Errorf("tunnel with ID %s not found", id)
 	}
 
-	err := provider.Stop()
+	return provider.Stop()
+}
 
+func (o *Orchestrator) DeleteTunnel(id string) error {
 	o.mu.Lock()
+	provider, exists := o.tunnels[id]
+	if !exists {
+		o.mu.Unlock()
+		return fmt.Errorf("tunnel with ID %s not found", id)
+	}
+
+	if provider.Status().Status == tunnel.StatusRunning {
+		provider.Stop()
+	}
 	delete(o.tunnels, id)
 	o.mu.Unlock()
+	return nil
+}
 
-	return err
+func (o *Orchestrator) RestartTunnel(ctx context.Context, id string) error {
+	o.mu.RLock()
+	provider, exists := o.tunnels[id]
+	o.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("tunnel with ID %s not found", id)
+	}
+
+	provider.Stop()
+	return provider.Start(ctx)
+}
+
+func (o *Orchestrator) GetLogs(id string) ([]string, error) {
+	o.mu.RLock()
+	provider, exists := o.tunnels[id]
+	o.mu.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("tunnel with ID %s not found", id)
+	}
+	return provider.GetLogs(), nil
 }
 
 func (o *Orchestrator) ListTunnels() []tunnel.TunnelInfo {
@@ -94,13 +155,8 @@ func (o *Orchestrator) GetStats() Stats {
 
 func (o *Orchestrator) StopAll() {
 	o.mu.RLock()
-	ids := make([]string, 0, len(o.tunnels))
-	for id := range o.tunnels {
-		ids = append(ids, id)
-	}
-	o.mu.RUnlock()
-
-	for _, id := range ids {
-		o.StopTunnel(id)
+	defer o.mu.RUnlock()
+	for _, p := range o.tunnels {
+		p.Stop()
 	}
 }

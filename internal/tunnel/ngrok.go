@@ -21,6 +21,7 @@ type NgrokProvider struct {
 	status    Status
 	publicURL string
 	err       error
+	logs      []string
 	mu        sync.RWMutex
 }
 
@@ -34,10 +35,20 @@ func NewNgrokProvider(id, name, localAddr, token string) *NgrokProvider {
 	}
 }
 
+func (p *NgrokProvider) addLog(msg string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.logs = append(p.logs, msg)
+	if len(p.logs) > 100 {
+		p.logs = p.logs[1:]
+	}
+}
+
 func (p *NgrokProvider) Start(ctx context.Context) error {
 	p.mu.Lock()
 	p.status = StatusStarting
 	p.mu.Unlock()
+	p.addLog("Connecting to Ngrok...")
 
 	opts := []ngrok.ConnectOption{
 		ngrok.WithAuthtoken(p.token),
@@ -52,6 +63,7 @@ func (p *NgrokProvider) Start(ctx context.Context) error {
 		p.status = StatusError
 		p.err = err
 		p.mu.Unlock()
+		p.addLog(fmt.Sprintf("Ngrok connection error: %v", err))
 		return err
 	}
 
@@ -60,6 +72,7 @@ func (p *NgrokProvider) Start(ctx context.Context) error {
 	p.publicURL = tun.URL()
 	p.status = StatusRunning
 	p.mu.Unlock()
+	p.addLog(fmt.Sprintf("Ngrok tunnel established at %s", p.publicURL))
 
 	go p.forward(tun)
 
@@ -85,9 +98,10 @@ func (p *NgrokProvider) forward(tun ngrok.Tunnel) {
 
 func (p *NgrokProvider) handleConn(conn net.Conn) {
 	defer conn.Close()
+	p.addLog(fmt.Sprintf("Forwarding connection from %s", conn.RemoteAddr()))
 	dest, err := net.Dial("tcp", p.localAddr)
 	if err != nil {
-		fmt.Printf("failed to dial local addr %s: %v\n", p.localAddr, err)
+		p.addLog(fmt.Sprintf("Failed to dial local addr %s: %v", p.localAddr, err))
 		return
 	}
 	defer dest.Close()
@@ -111,9 +125,18 @@ func (p *NgrokProvider) Stop() error {
 	if p.tunnel != nil {
 		err := p.tunnel.Close()
 		p.status = StatusStopped
+		p.logs = append(p.logs, "Tunnel stopped.")
 		return err
 	}
 	return nil
+}
+
+func (p *NgrokProvider) GetLogs() []string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	logs := make([]string, len(p.logs))
+	copy(logs, p.logs)
+	return logs
 }
 
 func (p *NgrokProvider) Status() TunnelInfo {

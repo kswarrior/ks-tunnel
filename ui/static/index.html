@@ -43,7 +43,7 @@
             background-color: #b78cf9;
         }
 
-        /* Mobile responsive dashboard visibility */
+        /* Mobile responsive dashboard visibility - hidden as requested */
         @media (max-width: 767px) {
             #section-dashboard {
                 display: none !important;
@@ -97,6 +97,29 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <span>Settings</span>
             </a>
+
+            <div class="mt-8 mb-4 px-3 text-[10px] font-black text-[#8b949e] uppercase tracking-[0.2em] flex justify-between items-center">
+                <span>Providers</span>
+                <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="hover:text-white transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M12 4v16m8-8H4"></path></svg>
+                </button>
+            </div>
+            <div class="space-y-1">
+                <div class="flex items-center justify-between p-3 rounded-lg text-xs font-semibold text-[#8b949e] hover:bg-[#1c2128] transition-all cursor-pointer group">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-1.5 h-1.5 bg-[#a371f7] rounded-full"></div>
+                        <span>Cloudflare</span>
+                    </div>
+                    <span class="text-[9px] px-1.5 py-0.5 bg-[#21262d] rounded text-white opacity-0 group-hover:opacity-100 transition-opacity">QUICK</span>
+                </div>
+                <div class="flex items-center justify-between p-3 rounded-lg text-xs font-semibold text-[#8b949e] hover:bg-[#1c2128] transition-all cursor-pointer group">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-1.5 h-1.5 bg-[#a371f7] rounded-full"></div>
+                        <span>Ngrok</span>
+                    </div>
+                    <span class="text-[9px] px-1.5 py-0.5 bg-[#21262d] rounded text-white opacity-0 group-hover:opacity-100 transition-opacity">SDK</span>
+                </div>
+            </div>
         </nav>
 
         <div class="p-6 mt-auto">
@@ -203,39 +226,77 @@
 
     </main>
 
-    <!-- Modal -->
-    <div id="add-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-6">
-        <div class="absolute inset-0 bg-black bg-opacity-80 backdrop-blur-md" onclick="document.getElementById('add-modal').classList.add('hidden')"></div>
-        <div class="card p-10 w-full max-w-xl relative z-10 shadow-2xl overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1 bg-[#a371f7]"></div>
-            <h2 class="text-2xl font-black mb-8 text-white">Create Node</h2>
-            <form id="tunnel-form" class="space-y-6">
-                <div>
-                    <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Deployment Name</label>
-                    <input type="text" name="name" placeholder="Service Identifier" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white focus:border-[#a371f7] outline-none transition-all placeholder:text-[#30363d]" required>
+    <!-- Add/Edit Modal -->
+    <div id="add-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" onclick="closeModal('add-modal')"></div>
+        <div class="card w-full max-w-2xl relative z-10 shadow-2xl overflow-hidden border-t-4 border-[#a371f7]">
+            <div class="p-8 md:p-12">
+                <div class="flex justify-between items-center mb-10">
+                    <h2 id="modal-title" class="text-3xl font-black text-white">Create Node</h2>
+                    <button onclick="closeModal('add-modal')" class="text-[#8b949e] hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
                 </div>
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Provider</label>
-                        <select name="type" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white focus:border-[#a371f7] outline-none cursor-pointer appearance-none">
-                            <option value="cloudflare">Cloudflare</option>
-                            <option value="ngrok">Ngrok SDK</option>
-                        </select>
+                <form id="tunnel-form" class="space-y-8">
+                    <input type="hidden" name="id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-6 md:col-span-2">
+                            <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Deployment Identity</label>
+                            <input type="text" name="name" placeholder="Service Name (e.g. Production API)" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all placeholder:text-[#30363d]" required>
+                        </div>
+                        <div class="space-y-6">
+                            <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Provider Engine</label>
+                            <div class="relative">
+                                <select name="type" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none cursor-pointer appearance-none">
+                                    <option value="cloudflare">Cloudflare Quick Tunnel</option>
+                                    <option value="ngrok">Ngrok SDK (Official)</option>
+                                </select>
+                                <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[#8b949e]">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-6">
+                            <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Internal Target</label>
+                            <input type="text" name="local_addr" placeholder="8080 or localhost:3000" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all placeholder:text-[#30363d]" required>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Internal Port</label>
-                        <input type="number" name="local_addr" placeholder="8080" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white focus:border-[#a371f7] outline-none transition-all placeholder:text-[#30363d]" required>
+                    <div id="ngrok-token-field" class="hidden space-y-6">
+                        <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Ngrok Auth Token</label>
+                        <input type="password" name="token" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all">
                     </div>
+                    <div class="flex flex-col md:flex-row justify-end space-y-4 md:space-y-0 md:space-x-6 pt-10">
+                        <button type="button" onclick="closeModal('add-modal')" class="px-8 py-5 text-sm font-bold text-[#8b949e] hover:text-white transition-colors">Discard Changes</button>
+                        <button type="submit" class="btn-purple px-12 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl active:scale-95 transition-all">Execute Node</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Modal -->
+    <div id="logs-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-10">
+        <div class="absolute inset-0 bg-black/95 backdrop-blur-2xl" onclick="closeModal('logs-modal')"></div>
+        <div class="card w-full max-w-5xl h-[80vh] relative z-10 shadow-2xl flex flex-col border border-[#30363d]">
+            <div class="p-6 border-b border-[#21262d] flex justify-between items-center bg-[#11141a]">
+                <div class="flex items-center space-x-4">
+                    <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <h2 class="ml-4 text-xs font-black text-[#8b949e] uppercase tracking-widest">Tunnel Terminal Output — <span id="log-node-name" class="text-white"></span></h2>
                 </div>
-                <div id="ngrok-token-field" class="hidden">
-                    <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Ngrok Authentication</label>
-                    <input type="password" name="token" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white focus:border-[#a371f7] outline-none transition-all">
-                </div>
-                <div class="flex justify-end space-x-6 pt-6">
-                    <button type="button" onclick="document.getElementById('add-modal').classList.add('hidden')" class="text-sm font-bold text-[#8b949e] hover:text-white transition-colors">Abort</button>
-                    <button type="submit" class="btn-purple px-10 py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all">Execute Deployment</button>
-                </div>
-            </form>
+                <button onclick="closeModal('logs-modal')" class="text-[#8b949e] hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="log-container" class="flex-1 p-8 font-mono text-sm overflow-y-auto bg-black text-green-400 space-y-2 selection:bg-[#a371f7] selection:text-white">
+                <!-- Logs will be inserted here -->
+                <div class="opacity-50"># Initializing stream...</div>
+            </div>
+            <div class="p-4 bg-[#0b0d11] border-t border-[#21262d] flex justify-between text-[10px] text-[#8b949e] font-bold uppercase tracking-widest">
+                <span>STDOUT / STDERR REPL</span>
+                <span class="flex items-center"><span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-2 animate-pulse"></span> Live Stream Active</span>
+            </div>
         </div>
     </div>
 
