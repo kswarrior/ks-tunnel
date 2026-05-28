@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { name: 'ngrok', variables: [] }       // Handled by static fields
         ];
 
-        const provider = [...builtIn, ...globalProviders].find(p => p.name === providerName);
+        const provider = [...builtIn, ...globalProviders].find(p => p.name.toLowerCase() === providerName.toLowerCase());
         if (!provider || !provider.variables || provider.variables.length === 0) return;
 
         const container = tunnelForm.querySelector('.grid');
@@ -165,21 +165,33 @@ document.addEventListener('DOMContentLoaded', () => {
             globalProviders = await response.json();
 
             const currentVal = typeSelect.value;
+            const builtInNames = ['Cloudflare', 'Ngrok'];
+            const others = globalProviders.filter(p => !builtInNames.includes(p.name));
+
             typeSelect.innerHTML = `
                 <option value="cloudflare">Cloudflare Quick Tunnel</option>
                 <option value="ngrok">Ngrok SDK (Official)</option>
-                ${globalProviders.map(p => `<option value="${p.name}">${p.name}</option>`).join('')}
+                ${others.map(p => `<option value="${p.name}">${p.name}</option>`).join('')}
             `;
             if (globalProviders.some(p => p.name === currentVal) || ['cloudflare', 'ngrok'].includes(currentVal)) {
                 typeSelect.value = currentVal;
             }
 
             if (providerGrid) {
-                const builtIn = [
-                    { name: 'Cloudflare', type: 'Built-in Engine', command: 'cloudflared tunnel --url ${Port}', variables: ['Port'], builtIn: true },
-                    { name: 'Ngrok', type: 'Built-in Engine', command: 'ngrok-sdk-native', variables: ['Port', 'Token'], builtIn: true }
-                ];
-                const allProviders = [...builtIn, ...globalProviders.map(p => ({...p, type: 'Custom Engine'}))];
+                const builtInNames = ['Cloudflare', 'Ngrok', 'Localtunnel', 'Bore', 'Loophole', 'Serveo', 'Pinggy', 'Playit.gg'];
+
+                const allProviders = globalProviders.map(p => {
+                    const isBuiltIn = builtInNames.includes(p.name);
+                    return {
+                        ...p,
+                        type: isBuiltIn ? 'Built-in Engine' : 'Custom Engine',
+                        builtIn: isBuiltIn
+                    };
+                }).sort((a, b) => {
+                    if (a.builtIn && !b.builtIn) return -1;
+                    if (!a.builtIn && b.builtIn) return 1;
+                    return a.name.localeCompare(b.name);
+                });
 
                 providerGrid.innerHTML = allProviders.map(p => `
                     <div class="card p-8 flex flex-col space-y-6">

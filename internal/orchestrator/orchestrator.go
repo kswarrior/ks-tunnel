@@ -26,9 +26,56 @@ type Orchestrator struct {
 }
 
 func NewOrchestrator() *Orchestrator {
-	return &Orchestrator{
+	o := &Orchestrator{
 		tunnels:   make(map[string]tunnel.TunnelProvider),
 		providers: make(map[string]ProviderDef),
+	}
+	o.seedDefaultProviders()
+	return o
+}
+
+func (o *Orchestrator) seedDefaultProviders() {
+	defaults := []ProviderDef{
+		{
+			Name:    "Localtunnel",
+			Type:    "Built-in Engine",
+			Command: "lt --port ${Port}",
+			Regex:   `https?://[a-zA-Z0-9.-]+\.(loca\.lt|localtunnel\.me)`,
+		},
+		{
+			Name:    "Bore",
+			Type:    "Built-in Engine",
+			Command: "bore local ${Port} --to bore.pub",
+			Regex:   `bore.pub:[0-9]+`,
+		},
+		{
+			Name:    "Loophole",
+			Type:    "Built-in Engine",
+			Command: "loophole http ${Port}",
+			Regex:   `https?://[a-zA-Z0-9.-]+\.loophole\.site`,
+		},
+		{
+			Name:    "Serveo",
+			Type:    "Built-in Engine",
+			Command: "ssh -R 80:localhost:${Port} serveo.net",
+			Regex:   `https?://[a-zA-Z0-9.-]+\.serveo\.net`,
+		},
+		{
+			Name:    "Pinggy",
+			Type:    "Built-in Engine",
+			Command: "ssh -p 443 -R0:localhost:${Port}+pro@ssh.pinggy.io",
+			Regex:   `https?://[a-zA-Z0-9.-]+\.pinggy\.link`,
+		},
+		{
+			Name:    "Playit.gg",
+			Type:    "Built-in Engine",
+			Command: "playit",
+			Regex:   `[a-zA-Z0-9.-]+\.playit\.gg`,
+		},
+	}
+
+	for _, p := range defaults {
+		o.AddProvider(p)
 	}
 }
 
