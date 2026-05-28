@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/username/kstunnel/internal/tunnel"
+	"github.com/elite-architect/kstunnel/internal/tunnel"
 )
 
 type mockProvider struct {

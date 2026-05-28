@@ -18,6 +18,7 @@ type GenericProvider struct {
 	cmdStr    string
 	variables map[string]string
 	regex     string
+	re        *regexp.Regexp
 
 	status    Status
 	publicURL string
@@ -28,12 +29,20 @@ type GenericProvider struct {
 }
 
 func NewGenericProvider(id, name, typeName, cmdStr, regex string, variables map[string]string) *GenericProvider {
+	var re *regexp.Regexp
+	reStr := `https?://[a-zA-Z0-9.-]+\.(ngrok-free\.app|trycloudflare\.com|loca\.lt)[^\s]*`
+	if regex != "" {
+		reStr = regex
+	}
+	re, _ = regexp.Compile(reStr)
+
 	return &GenericProvider{
 		id:        id,
 		name:      name,
 		typeName:  typeName,
 		cmdStr:    cmdStr,
 		regex:     regex,
+		re:        re,
 		variables: variables,
 		status:    StatusStopped,
 		logs:      make([]string, 0, 100),
@@ -146,14 +155,9 @@ func (p *GenericProvider) addLog(line string) {
 	}
 	p.logs = append(p.logs, line)
 
-	// Attempt to find public URL using custom regex if provided, otherwise common patterns
-	if p.publicURL == "" {
-		reStr := `https?://[a-zA-Z0-9.-]+\.(ngrok-free\.app|trycloudflare\.com|loca\.lt)[^\s]*`
-		if p.regex != "" {
-			reStr = p.regex
-		}
-		re := regexp.MustCompile(reStr)
-		if found := re.FindString(line); found != "" {
+	// Attempt to find public URL using custom regex
+	if p.publicURL == "" && p.re != nil {
+		if found := p.re.FindString(line); found != "" {
 			p.publicURL = found
 		}
 	}

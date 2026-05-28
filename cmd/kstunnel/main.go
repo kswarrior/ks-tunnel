@@ -9,9 +9,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/username/kstunnel"
-	"github.com/username/kstunnel/internal/orchestrator"
-	"github.com/username/kstunnel/internal/web"
+	"github.com/elite-architect/kstunnel"
+	"github.com/elite-architect/kstunnel/internal/orchestrator"
+	"github.com/elite-architect/kstunnel/internal/web"
 )
 
 func main() {

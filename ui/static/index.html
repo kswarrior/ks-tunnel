@@ -260,13 +260,21 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="space-y-6">
+                        <div class="space-y-6" id="port-field">
                             <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Internal Target</label>
-                            <input type="text" name="local_addr" placeholder="8080 or localhost:3000" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all placeholder:text-[#30363d]" required>
+                            <div class="flex space-x-2">
+                                <select name="protocol" class="bg-[#0b0d11] border border-[#21262d] rounded-2xl px-4 text-white focus:ring-2 ring-[#a371f7]/30 outline-none">
+                                    <option value="http">HTTP</option>
+                                    <option value="https">HTTPS</option>
+                                    <option value="tcp">TCP</option>
+                                    <option value="tls">TLS</option>
+                                </select>
+                                <input type="text" name="local_addr" placeholder="8080 or localhost:3000" class="flex-1 bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all placeholder:text-[#30363d]">
+                            </div>
                         </div>
                     </div>
-                    <div id="ngrok-token-field" class="hidden space-y-6">
-                        <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Ngrok Auth Token</label>
+                    <div id="token-field" class="hidden space-y-6">
+                        <label id="token-label" class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Auth Token</label>
                         <input type="password" name="token" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all">
                     </div>
                     <div class="flex flex-col md:flex-row justify-end space-y-4 md:space-y-0 md:space-x-6 pt-10">

@@ -1,4 +1,4 @@
-module github.com/username/kstunnel
+module github.com/elite-architect/kstunnel
 
 go 1.24.3
 

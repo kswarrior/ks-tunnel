@@ -90,7 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tunnelForm = document.getElementById('tunnel-form');
     const providerForm = document.getElementById('provider-form');
     const typeSelect = tunnelForm.querySelector('select[name="type"]');
-    const ngrokTokenField = document.getElementById('ngrok-token-field');
+    const tokenField = document.getElementById('token-field');
+    const portField = document.getElementById('port-field');
     const modalTitle = document.getElementById('modal-title');
 
     let globalProviders = [];
@@ -120,7 +121,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     typeSelect.addEventListener('change', () => {
         const val = typeSelect.value;
-        ngrokTokenField.classList.toggle('hidden', val !== 'ngrok');
+
+        // Conditional Visibility
+        const isManaged = val === 'Cloudflare (Managed)';
+        const isNgrok = val === 'ngrok';
+
+        tokenField.classList.toggle('hidden', !isManaged && !isNgrok);
+        portField.classList.toggle('hidden', isManaged);
+
         renderDynamicFields(val);
     });
 
@@ -165,11 +173,12 @@ document.addEventListener('DOMContentLoaded', () => {
             globalProviders = await response.json();
 
             const currentVal = typeSelect.value;
-            const builtInNames = ['Cloudflare', 'Ngrok'];
+            const builtInNames = ['Cloudflare (Quick)', 'Cloudflare (Managed)', 'Ngrok'];
             const others = globalProviders.filter(p => !builtInNames.includes(p.name));
 
             typeSelect.innerHTML = `
-                <option value="cloudflare">Cloudflare Quick Tunnel</option>
+                <option value="Cloudflare (Quick)">Cloudflare Quick Tunnel</option>
+                <option value="Cloudflare (Managed)">Cloudflare Managed Tunnel</option>
                 <option value="ngrok">Ngrok SDK (Official)</option>
                 ${others.map(p => `<option value="${p.name}">${p.name}</option>`).join('')}
             `;
@@ -178,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (providerGrid) {
-                const builtInNames = ['Cloudflare', 'Ngrok', 'Localtunnel', 'Bore', 'Loophole', 'Serveo', 'Pinggy', 'Playit.gg'];
+                const builtInNames = ['Cloudflare (Quick)', 'Cloudflare (Managed)', 'Ngrok', 'Localtunnel', 'Bore', 'Loophole', 'Serveo', 'Pinggy.io', 'Playit.gg'];
 
                 const allProviders = globalProviders.map(p => {
                     const isBuiltIn = builtInNames.includes(p.name);
@@ -355,7 +364,11 @@ document.addEventListener('DOMContentLoaded', () => {
             type: rawData.type,
             local_addr: rawData.local_addr,
             token: rawData.token,
-            config: {}
+            config: {
+                Protocol: rawData.protocol || 'http',
+                Port: rawData.local_addr,
+                Token: rawData.token
+            }
         };
 
         Object.keys(rawData).forEach(key => {
@@ -428,7 +441,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tunnelForm.name.value = tunnel.name;
         tunnelForm.type.value = tunnel.type;
         tunnelForm.local_addr.value = tunnel.local_addr;
-        ngrokTokenField.classList.toggle('hidden', tunnel.type !== 'ngrok');
+
+        const isManaged = tunnel.type === 'Cloudflare (Managed)';
+        const isNgrok = tunnel.type === 'ngrok';
+        tokenField.classList.toggle('hidden', !isManaged && !isNgrok);
+        portField.classList.toggle('hidden', isManaged);
 
         renderDynamicFields(tunnel.type);
         // Fill dynamic fields

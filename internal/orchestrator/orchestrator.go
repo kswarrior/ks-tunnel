@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/username/kstunnel/internal/tunnel"
+	"github.com/elite-architect/kstunnel/internal/tunnel"
 )
 
 var varRegex = regexp.MustCompile(`\$\{([a-zA-Z0-9_]+)\}`)
@@ -37,6 +37,17 @@ func NewOrchestrator() *Orchestrator {
 func (o *Orchestrator) seedDefaultProviders() {
 	defaults := []ProviderDef{
 		{
+			Name:    "Cloudflare (Quick)",
+			Type:    "Built-in Engine",
+			Command: "cloudflared tunnel --url ${Protocol}://localhost:${Port}",
+			Regex:   `https://[a-zA-Z0-9-]+\.trycloudflare\.com`,
+		},
+		{
+			Name:    "Cloudflare (Managed)",
+			Type:    "Built-in Engine",
+			Command: "cloudflared tunnel run --token ${Token}",
+		},
+		{
 			Name:    "Localtunnel",
 			Type:    "Built-in Engine",
 			Command: "lt --port ${Port}",
@@ -61,9 +72,9 @@ func (o *Orchestrator) seedDefaultProviders() {
 			Regex:   `https?://[a-zA-Z0-9.-]+\.serveo\.net`,
 		},
 		{
-			Name:    "Pinggy",
+			Name:    "Pinggy.io",
 			Type:    "Built-in Engine",
-			Command: "ssh -p 443 -R0:localhost:${Port}+pro@ssh.pinggy.io",
+			Command: "ssh -p 443 -R0:localhost:${Port}+${Protocol}@ssh.pinggy.io",
 			Regex:   `https?://[a-zA-Z0-9.-]+\.pinggy\.link`,
 		},
 		{

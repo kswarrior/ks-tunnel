@@ -7,8 +7,8 @@ import (
 	"io/fs"
 	"net/http"
 
-	"github.com/username/kstunnel/internal/orchestrator"
-	"github.com/username/kstunnel/internal/tunnel"
+	"github.com/elite-architect/kstunnel/internal/orchestrator"
+	"github.com/elite-architect/kstunnel/internal/tunnel"
 )
 
 type Server struct {
@@ -73,8 +73,6 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 		var provider tunnel.TunnelProvider
 		if req.Type == "ngrok" {
 			provider = tunnel.NewNgrokProvider(id, req.Name, req.LocalAddr, req.Token)
-		} else if req.Type == "cloudflare" {
-			provider = tunnel.NewCloudflareProvider(id, req.Name, req.LocalAddr)
 		} else {
 			// Check if it's a custom provider
 			pDef, ok := s.orch.GetProvider(req.Type)
