@@ -1,20 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Navigation Logic
     const navLinks = document.querySelectorAll('.nav-link');
-    const sections = ['dashboard', 'tunnels', 'providers', 'settings'];
-    const menuToggle = document.getElementById('menu-toggle');
-    const mobileMenu = document.getElementById('mobile-menu');
-    const backdrop = document.getElementById('menu-backdrop');
-
-    const toggleMenu = (show) => {
-        if (show) {
-            mobileMenu.classList.remove('-translate-x-full');
-            backdrop.classList.remove('hidden');
-        } else {
-            mobileMenu.classList.add('-translate-x-full');
-            backdrop.classList.add('hidden');
-        }
-    };
+    const sections = ['dashboard', 'tunnels', 'providers'];
+    const sidebar = document.getElementById('sidebar');
+    const mobileToggle = document.getElementById('mobile-toggle');
 
     const showSection = (sectionId) => {
         sections.forEach(s => {
@@ -26,63 +15,93 @@ document.addEventListener('DOMContentLoaded', () => {
 
         navLinks.forEach(link => {
             if (link.dataset.section === sectionId) {
-                link.classList.add('active-link');
-                link.classList.remove('text-[#8b949e]');
-                link.classList.add('text-white');
+                link.classList.add('active');
+                link.classList.remove('text-gray-500');
             } else {
-                link.classList.remove('active-link');
-                link.classList.add('text-[#8b949e]');
-                link.classList.remove('text-white');
+                link.classList.remove('active');
+                link.classList.add('text-gray-500');
             }
         });
 
-        toggleMenu(false);
+        // Update Title
+        const titles = { dashboard: 'Dashboard', tunnels: 'Inventory', providers: 'Reports' };
+        document.getElementById('page-title').innerText = titles[sectionId] || 'Dashboard';
+
+        if (window.innerWidth < 1024) sidebar.classList.add('-translate-x-full');
     };
 
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
-            e.preventDefault();
-            showSection(link.dataset.section);
+            if (link.dataset.section) {
+                e.preventDefault();
+                showSection(link.dataset.section);
+            }
         });
     });
 
-    menuToggle.addEventListener('click', () => toggleMenu(true));
-    backdrop.addEventListener('click', () => toggleMenu(false));
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const toggleMobileMenu = () => {
+        sidebar.classList.toggle('-translate-x-full');
+        backdrop.classList.toggle('hidden');
+    };
+
+    mobileToggle.addEventListener('click', toggleMobileMenu);
+    backdrop.addEventListener('click', toggleMobileMenu);
 
     // Charting Logic
-    const pieCanvas = document.getElementById('pieChart');
-    let pieChart = null;
-    if (pieCanvas) {
-        const ctx = pieCanvas.getContext('2d');
-        pieChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Healthy', 'Starting', 'Critical', 'Idle'],
-                datasets: [{
-                    data: [0, 0, 0, 0],
-                    backgroundColor: ['#3fb950', '#d29922', '#f85149', '#484f58'],
-                    borderWidth: 0,
-                    hoverOffset: 15,
-                    cutout: '75%'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#8b949e',
-                            font: { family: 'Inter', weight: '600', size: 10 },
-                            padding: 20,
-                            usePointStyle: true
-                        }
+    let barChart = null;
+    let doughnutChart = null;
+
+    const initCharts = () => {
+        const barCtx = document.getElementById('barChart')?.getContext('2d');
+        if (barCtx) {
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['28 Jan', '29 Jan', '30 Jan', '31 Jan', '1 Feb', '2 Feb', '3 Feb', '4 Feb', '5 Feb'],
+                    datasets: [{
+                        label: 'Requests',
+                        data: [65, 59, 80, 81, 56, 55, 40, 70, 90],
+                        backgroundColor: '#ff5b5b',
+                        borderRadius: 6,
+                        barThickness: 20
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { border: { display: false }, grid: { color: '#f0f2f5' } },
+                        x: { border: { display: false }, grid: { display: false } }
                     }
                 }
-            }
-        });
-    }
+            });
+        }
+
+        const doughnutCtx = document.getElementById('doughnutChart')?.getContext('2d');
+        if (doughnutCtx) {
+            doughnutChart = new Chart(doughnutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Healthy', 'Error', 'Starting'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#3fb950', '#ff5b5b', '#faad14'],
+                        borderWidth: 0,
+                        cutout: '70%'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    };
+
+    initCharts();
 
     // API Handling
     const tunnelGrid = document.getElementById('tunnel-grid');
@@ -98,22 +117,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderDynamicFields = (providerName) => {
         document.querySelectorAll('.dynamic-field').forEach(el => el.remove());
-
-        const builtIn = [
-            { name: 'cloudflare', variables: [] }, // Handled by static fields
-            { name: 'ngrok', variables: [] }       // Handled by static fields
-        ];
-
-        const provider = [...builtIn, ...globalProviders].find(p => p.name.toLowerCase() === providerName.toLowerCase());
-        if (!provider || !provider.variables || provider.variables.length === 0) return;
+        const provider = globalProviders.find(p => p.name === providerName);
+        if (!provider || !provider.variables) return;
 
         const container = tunnelForm.querySelector('.grid');
         provider.variables.forEach(v => {
             const div = document.createElement('div');
-            div.className = 'dynamic-field space-y-6';
+            div.className = 'dynamic-field space-y-2';
             div.innerHTML = `
-                <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">${v}</label>
-                <input type="text" name="config_${v}" placeholder="Enter ${v}" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all placeholder:text-[#30363d]" required>
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${v}</label>
+                <input type="text" name="config_${v}" placeholder="Enter ${v}" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none">
             `;
             container.appendChild(div);
         });
@@ -121,14 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     typeSelect.addEventListener('change', () => {
         const val = typeSelect.value;
-
-        // Conditional Visibility
         const isManaged = val === 'Cloudflare (Managed)';
         const isNgrok = val === 'ngrok';
-
         tokenField.classList.toggle('hidden', !isManaged && !isNgrok);
         portField.classList.toggle('hidden', isManaged);
-
         renderDynamicFields(val);
     });
 
@@ -147,24 +156,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/stats');
             const stats = await response.json();
 
-            const setStat = (id, val) => {
-                const el = document.getElementById(id);
-                if (el) el.innerText = val;
-            };
+            document.getElementById('stat-total').innerText = stats.total;
+            document.getElementById('stat-running').innerText = stats.running;
+            document.getElementById('stat-starting').innerText = stats.starting;
+            document.getElementById('stat-error').innerText = stats.error;
+            document.getElementById('stat-providers').innerText = stats.providers;
 
-            setStat('stat-total', stats.total);
-            setStat('stat-running', stats.running);
-            setStat('stat-starting', stats.starting);
-            setStat('stat-error', stats.error);
-            setStat('stat-providers', stats.providers);
+            document.getElementById('stat-active-sessions').innerText = stats.running;
+            document.getElementById('stat-starting-count').innerText = stats.starting;
 
-            if (pieChart) {
-                pieChart.data.datasets[0].data = [stats.running, stats.starting, stats.error, stats.stopped];
-                pieChart.update();
+            if (doughnutChart) {
+                doughnutChart.data.datasets[0].data = [stats.running, stats.error, stats.starting];
+                doughnutChart.update();
             }
-        } catch (err) {
-            console.error('Failed to fetch stats:', err);
-        }
+        } catch (err) { console.error(err); }
     };
 
     const fetchProviders = async () => {
@@ -177,324 +182,152 @@ document.addEventListener('DOMContentLoaded', () => {
             const others = globalProviders.filter(p => !builtInNames.includes(p.name));
 
             typeSelect.innerHTML = `
-                <option value="Cloudflare (Quick)">Cloudflare Quick Tunnel</option>
-                <option value="Cloudflare (Managed)">Cloudflare Managed Tunnel</option>
-                <option value="ngrok">Ngrok SDK (Official)</option>
+                <option value="Cloudflare (Quick)">Cloudflare Quick</option>
+                <option value="Cloudflare (Managed)">Cloudflare Managed</option>
+                <option value="ngrok">Ngrok SDK</option>
                 ${others.map(p => `<option value="${p.name}">${p.name}</option>`).join('')}
             `;
-            if (globalProviders.some(p => p.name === currentVal) || ['cloudflare', 'ngrok'].includes(currentVal)) {
-                typeSelect.value = currentVal;
-            }
+            typeSelect.value = currentVal || 'Cloudflare (Quick)';
 
             if (providerGrid) {
-                const builtInNames = ['Cloudflare (Quick)', 'Cloudflare (Managed)', 'Ngrok', 'Localtunnel', 'Bore', 'Loophole', 'Serveo', 'Pinggy.io', 'Playit.gg'];
-
-                const allProviders = globalProviders.map(p => {
-                    const isBuiltIn = builtInNames.includes(p.name);
-                    return {
-                        ...p,
-                        type: isBuiltIn ? 'Built-in Engine' : 'Custom Engine',
-                        builtIn: isBuiltIn
-                    };
-                }).sort((a, b) => {
-                    if (a.builtIn && !b.builtIn) return -1;
-                    if (!a.builtIn && b.builtIn) return 1;
-                    return a.name.localeCompare(b.name);
-                });
-
-                providerGrid.innerHTML = allProviders.map(p => `
-                    <div class="card p-8 flex flex-col space-y-6">
+                providerGrid.innerHTML = globalProviders.map(p => `
+                    <div class="card p-6 flex flex-col space-y-4">
                         <div class="flex justify-between items-start">
                             <div>
-                                <h3 class="text-xl font-black text-white">${p.name}</h3>
-                                <p class="text-[10px] text-[#8b949e] font-bold uppercase tracking-widest mt-1">${p.type}</p>
+                                <h3 class="font-extrabold text-gray-900">${p.name}</h3>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Engine</p>
                             </div>
-                            ${p.builtIn ? '' : `
-                            <button onclick="deleteProvider('${p.name}')" class="text-red-500 hover:text-red-400">
+                            <button onclick="deleteProvider('${p.name}')" class="text-gray-300 hover:text-red-500">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
-                            `}
                         </div>
-                        <div class="bg-[#0b0d11] p-4 rounded-xl border border-[#21262d]">
-                            <code class="text-[11px] text-[#a371f7] break-all">${p.command}</code>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            ${(p.variables || []).map(v => `<span class="px-2 py-1 bg-[#1c2128] rounded text-[9px] font-black text-white uppercase border border-[#21262d]">${v}</span>`).join('')}
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <code class="text-[10px] text-red-500 font-mono break-all">${p.command}</code>
                         </div>
                     </div>
                 `).join('');
             }
-        } catch (err) {
-            console.error('Failed to fetch providers:', err);
-        }
+        } catch (err) {}
     };
 
     window.deleteProvider = async (name) => {
-        if (!confirm('Delete this provider engine?')) return;
-        const res = await fetch(`/api/providers?name=${encodeURIComponent(name)}`, {
-            method: 'DELETE'
-        });
-        if (res.ok) fetchProviders();
+        if (!confirm('Delete engine?')) return;
+        await fetch(`/api/providers?name=${encodeURIComponent(name)}`, { method: 'DELETE' });
+        fetchProviders();
     };
 
     providerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(providerForm).entries());
-        const res = await fetch('/api/providers', {
+        await fetch('/api/providers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (res.ok) {
-            closeModal('provider-modal');
-            fetchProviders();
-            updateStats();
-        }
+        closeModal('provider-modal');
+        fetchProviders();
     });
 
     const fetchTunnels = async () => {
         try {
             const response = await fetch('/api/tunnels');
             const tunnels = await response.json();
-
             if (!tunnelGrid) return;
 
             tunnelGrid.innerHTML = tunnels.map(t => {
-                const statusColor = t.status === 'RUNNING' ? '#3fb950' : (t.status === 'STARTING' ? '#d29922' : (t.status === 'ERROR' ? '#f85149' : '#484f58'));
+                const color = t.status === 'RUNNING' ? 'green' : (t.status === 'ERROR' ? 'red' : 'yellow');
                 const isStopped = t.status === 'STOPPED' || t.status === 'ERROR';
 
                 return `
-                <div class="card p-8 flex flex-col space-y-8 relative group overflow-visible border-l-4" style="border-left-color: ${statusColor}">
+                <div class="card p-6 flex flex-col space-y-6 border-t-4 border-${color}-500">
                     <div class="flex justify-between items-start">
-                        <div class="space-y-2">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_${statusColor}] ${t.status === 'STARTING' ? 'animate-pulse' : ''}" style="background-color: ${statusColor}"></div>
-                                <h3 class="text-xl font-black text-white tracking-tight">${t.name}</h3>
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 rounded-full bg-${color}-500 ${t.status === 'STARTING' ? 'animate-pulse' : ''}"></div>
+                                <h3 class="font-extrabold text-gray-900">${t.name}</h3>
                             </div>
-                            <div class="flex items-center space-x-4">
-                                <span class="px-2.5 py-1 rounded-md bg-[#21262d] text-[#a371f7] text-[10px] font-black uppercase tracking-widest border border-[#30363d]">
-                                    ${t.type}
-                                </span>
-                                <span class="text-[10px] font-bold text-[#8b949e] uppercase tracking-widest">${t.status}</span>
-                            </div>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${t.type} • ${t.status}</p>
                         </div>
-
-                        <div class="relative dropdown-container">
-                            <button onclick="toggleDropdown(event, '${t.id}')" class="p-2.5 text-[#8b949e] hover:text-white rounded-xl hover:bg-[#21262d] transition-all bg-[#0b0d11]">
-                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
+                        <div class="flex space-x-1">
+                             <button onclick="showLogs('${t.id}', '${t.name}')" class="p-2 text-gray-400 hover:bg-gray-50 rounded-lg">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             </button>
-                            <div id="dropdown-${t.id}" class="hidden absolute right-0 mt-3 w-56 dropdown-menu rounded-2xl py-3 overflow-hidden z-[50]">
-                                <a href="#" onclick="editTunnel(event, ${JSON.stringify(t).replace(/"/g, '&quot;')})" class="flex items-center px-5 py-3 text-xs font-bold text-white dropdown-item">
-                                    <svg class="w-4 h-4 mr-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                    Edit Config
-                                </a>
-                                ${isStopped ?
-                                    `<a href="#" onclick="startTunnel('${t.id}')" class="flex items-center px-5 py-3 text-xs font-bold text-[#3fb950] dropdown-item">
-                                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                        Start Node
-                                    </a>` :
-                                    `<a href="#" onclick="stopTunnel('${t.id}')" class="flex items-center px-5 py-3 text-xs font-bold text-yellow-500 dropdown-item">
-                                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                        Stop Node
-                                    </a>`
-                                }
-                                <a href="#" onclick="restartTunnel('${t.id}')" class="flex items-center px-5 py-3 text-xs font-bold text-white dropdown-item">
-                                    <svg class="w-4 h-4 mr-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                    Restart
-                                </a>
-                                <div class="border-t border-[#30363d] my-2"></div>
-                                <a href="#" onclick="showLogs('${t.id}', '${t.name}')" class="flex items-center px-5 py-3 text-xs font-bold text-white dropdown-item">
-                                    <svg class="w-4 h-4 mr-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                    View Terminal
-                                </a>
-                                <a href="#" onclick="deleteTunnel('${t.id}')" class="flex items-center px-5 py-3 text-xs font-bold text-red-500 dropdown-item">
-                                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    Terminate
-                                </a>
-                            </div>
+                            <button onclick="deleteTunnel('${t.id}')" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="bg-[#0b0d11] rounded-2xl p-5 border border-[#21262d] flex flex-col space-y-4">
-                        <div class="flex items-center justify-between text-[11px] font-bold">
-                            <span class="text-[#8b949e] uppercase tracking-widest">Internal Host</span>
-                            <span class="text-white font-mono">${t.local_addr}</span>
+                    <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+                        <div class="flex justify-between text-[10px] font-bold">
+                            <span class="text-gray-400">HOST</span>
+                            <span class="text-gray-900">${t.local_addr}</span>
                         </div>
-                        <div class="h-px bg-[#21262d]"></div>
-                        <div class="flex items-center justify-between">
-                            <div class="flex flex-col">
-                                <span class="text-[9px] text-[#8b949e] font-black uppercase tracking-widest mb-1">Public Endpoint</span>
-                                <a href="${t.public_url}" target="_blank" class="text-xs font-bold text-[#58a6ff] hover:underline truncate max-w-[200px]">
-                                    ${t.public_url || (t.status === 'ERROR' ? 'Failed' : 'Allocating...')}
-                                </a>
-                            </div>
-                            <a href="${t.public_url}" target="_blank" class="px-5 py-2.5 bg-[#a371f7] rounded-xl text-[10px] font-black text-white uppercase tracking-tighter hover:scale-105 transition-all shadow-lg shadow-[#a371f7]/20">
-                                Visit
-                            </a>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-bold text-gray-400">PUBLIC URL</span>
+                            <a href="${t.public_url}" target="_blank" class="text-[11px] font-bold text-blue-500 truncate max-w-[120px]">${t.public_url || 'Allocating...'}</a>
                         </div>
+                    </div>
+
+                    <div class="flex space-x-2">
+                        ${isStopped ?
+                            `<button onclick="startTunnel('${t.id}')" class="flex-1 py-2 bg-green-50 text-green-600 text-[10px] font-extrabold uppercase rounded-lg hover:bg-green-100">Start</button>` :
+                            `<button onclick="stopTunnel('${t.id}')" class="flex-1 py-2 bg-yellow-50 text-yellow-600 text-[10px] font-extrabold uppercase rounded-lg hover:bg-yellow-100">Stop</button>`
+                        }
+                        <button onclick="restartTunnel('${t.id}')" class="flex-1 py-2 bg-gray-50 text-gray-600 text-[10px] font-extrabold uppercase rounded-lg hover:bg-gray-100">Restart</button>
                     </div>
                 </div>
                 `;
             }).join('');
-        } catch (err) {
-            console.error('Failed to fetch tunnels:', err);
-        }
+        } catch (err) {}
     };
-
-    window.toggleDropdown = (e, id) => {
-        e.stopPropagation();
-        const el = document.getElementById(`dropdown-${id}`);
-        const all = document.querySelectorAll('.dropdown-menu');
-        all.forEach(d => { if(d.id !== `dropdown-${id}`) d.classList.add('hidden') });
-        el.classList.toggle('hidden');
-    };
-
-    document.addEventListener('click', () => {
-        document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.add('hidden'));
-    });
 
     tunnelForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(tunnelForm);
-        const rawData = Object.fromEntries(formData.entries());
-
+        const rawData = Object.fromEntries(new FormData(tunnelForm).entries());
         const data = {
-            id: rawData.id,
-            name: rawData.name,
-            type: rawData.type,
-            local_addr: rawData.local_addr,
-            token: rawData.token,
-            config: {
-                Protocol: rawData.protocol || 'http',
-                Port: rawData.local_addr,
-                Token: rawData.token
-            }
+            id: rawData.id, name: rawData.name, type: rawData.type, local_addr: rawData.local_addr, token: rawData.token,
+            config: { Protocol: rawData.protocol || 'http', Port: rawData.local_addr, Token: rawData.token }
         };
+        Object.keys(rawData).forEach(k => { if(k.startsWith('config_')) data.config[k.replace('config_', '')] = rawData[k]; });
 
-        Object.keys(rawData).forEach(key => {
-            if (key.startsWith('config_')) {
-                data.config[key.replace('config_', '')] = rawData[key];
-            }
-        });
-
-        if (!data.local_addr.includes(':') && data.local_addr !== "") {
-            data.local_addr = `localhost:${data.local_addr}`;
-        }
-
-        const response = await fetch('/api/tunnels', {
+        const res = await fetch('/api/tunnels', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-
-        if (response.ok) {
-            closeModal('add-modal');
-            fetchTunnels();
-            updateStats();
-        } else {
-            const err = await response.text();
-            alert('Deployment failed: ' + err);
-        }
+        if (res.ok) { closeModal('add-modal'); fetchTunnels(); updateStats(); }
     });
 
-    window.startTunnel = async (id) => {
-        const response = await fetch('/api/tunnels/start', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
-        if (response.ok) { fetchTunnels(); updateStats(); }
-    };
-
-    window.stopTunnel = async (id) => {
-        const response = await fetch('/api/tunnels/stop', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
-        if (response.ok) { fetchTunnels(); updateStats(); }
-    };
-
-    window.restartTunnel = async (id) => {
-        const response = await fetch('/api/tunnels/restart', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
-        if (response.ok) { fetchTunnels(); updateStats(); }
-    };
-
-    window.deleteTunnel = async (id) => {
-        if (!confirm('Are you sure you want to terminate this node? This cannot be undone.')) return;
-        const response = await fetch('/api/tunnels/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
-        if (response.ok) { fetchTunnels(); updateStats(); }
-    };
-
-    window.editTunnel = (e, tunnel) => {
-        e.preventDefault();
-        modalTitle.innerText = 'Edit Node';
-        tunnelForm.id.value = tunnel.id;
-        tunnelForm.name.value = tunnel.name;
-        tunnelForm.type.value = tunnel.type;
-        tunnelForm.local_addr.value = tunnel.local_addr;
-
-        const isManaged = tunnel.type === 'Cloudflare (Managed)';
-        const isNgrok = tunnel.type === 'ngrok';
-        tokenField.classList.toggle('hidden', !isManaged && !isNgrok);
-        portField.classList.toggle('hidden', isManaged);
-
-        renderDynamicFields(tunnel.type);
-        // Fill dynamic fields
-        if (tunnel.config) {
-            Object.keys(tunnel.config).forEach(k => {
-                const input = tunnelForm.querySelector(`input[name="config_${k}"]`);
-                if (input) input.value = tunnel.config[k];
-            });
-        }
-
-        document.getElementById('add-modal').classList.remove('hidden');
-    };
+    window.startTunnel = async (id) => { await fetch('/api/tunnels/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); };
+    window.stopTunnel = async (id) => { await fetch('/api/tunnels/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); };
+    window.restartTunnel = async (id) => { await fetch('/api/tunnels/restart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); };
+    window.deleteTunnel = async (id) => { if (confirm('Terminate?')) { await fetch('/api/tunnels/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); } };
 
     let logInterval = null;
     window.showLogs = async (id, name) => {
         document.getElementById('log-node-name').innerText = name;
         const container = document.getElementById('log-container');
-        container.innerHTML = '<div class="opacity-50"># Attaching to stream...</div>';
+        container.innerHTML = '';
         document.getElementById('logs-modal').classList.remove('hidden');
-
         const fetchLogs = async () => {
-            try {
-                const res = await fetch(`/api/tunnels/logs?id=${id}`);
-                const logs = await res.json();
-                container.innerHTML = logs.map(l => `<div class="py-0.5"><span class="text-[#8b949e] mr-2">>>></span>${l}</div>`).join('') || '<div class="opacity-50"># No log output yet.</div>';
-                container.scrollTop = container.scrollHeight;
-            } catch(e) {}
+            const res = await fetch(`/api/tunnels/logs?id=${id}`);
+            const logs = await res.json();
+            container.innerHTML = logs.map(l => `<div class="opacity-80">${l}</div>`).join('') || 'Waiting for output...';
+            container.scrollTop = container.scrollHeight;
         };
-
         fetchLogs();
         logInterval = setInterval(fetchLogs, 2000);
     };
 
     const originalCloseModal = window.closeModal;
     window.closeModal = (id) => {
-        if (id === 'logs-modal') {
-            clearInterval(logInterval);
-            logInterval = null;
-        }
+        if (id === 'logs-modal') { clearInterval(logInterval); logInterval = null; }
         originalCloseModal(id);
     };
 
-    // Initial load and polling
     fetchProviders();
     fetchTunnels();
     updateStats();
-    setInterval(() => {
-        fetchProviders();
-        fetchTunnels();
-        updateStats();
-    }, 5000);
+    setInterval(() => { fetchTunnels(); updateStats(); }, 5000);
 });

@@ -3,340 +3,426 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KS Tunnel</title>
+    <title>KS Tunnel | Management Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        :root {
-            --bg-color: #0b0d11;
-            --card-bg: #11141a;
-            --accent-color: #a371f7;
-            --text-primary: #ffffff;
-            --text-secondary: #8b949e;
-            --border-color: #21262d;
-        }
         body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1d23;
         }
         .sidebar {
-            background-color: #0b0d11;
-            border-right: 1px solid var(--border-color);
+            background-color: white;
+            border-right: 1px solid #eef0f2;
         }
         .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            border: 1px solid #f0f2f5;
+        }
+        .nav-link {
+            transition: all 0.2s;
             border-radius: 12px;
         }
-        .active-link {
-            color: var(--accent-color);
-            background: rgba(163, 113, 247, 0.1);
-            border-left: 3px solid var(--accent-color);
+        .nav-link:hover {
+            background-color: #fff1f0;
+            color: #ff5b5b;
         }
-        .btn-purple {
-            background-color: var(--accent-color);
+        .nav-link.active {
+            background-color: #fff1f0;
+            color: #ff5b5b;
+            font-weight: 700;
+        }
+        .summary-card-red { background-color: #fff1f0; }
+        .summary-card-green { background-color: #e9fbf0; }
+        .summary-card-blue { background-color: #e6f7ff; }
+        .summary-card-yellow { background-color: #fffbe6; }
+
+        .icon-box-red { background-color: #ff5b5b; }
+        .icon-box-green { background-color: #3fb950; }
+        .icon-box-blue { background-color: #1890ff; }
+        .icon-box-yellow { background-color: #faad14; }
+
+        .btn-primary {
+            background-color: #ff5b5b;
             color: white;
+            transition: all 0.3s;
         }
-        .btn-purple:hover {
-            background-color: #b78cf9;
-        }
-
-        /* Mobile responsive dashboard visibility - hidden as requested */
-        @media (max-width: 767px) {
-            #section-dashboard {
-                display: none !important;
-            }
+        .btn-primary:hover {
+            background-color: #e04a4a;
+            box-shadow: 0 4px 15px rgba(255, 91, 91, 0.3);
         }
 
-        .dropdown-menu {
-            background-color: #1c2128;
-            border: 1px solid #30363d;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            z-index: 100;
-        }
-        .dropdown-item:hover {
-            background-color: #30363d;
+        @media (max-width: 1024px) {
+            .sidebar-collapsed { transform: translateX(-100%); }
         }
     </style>
 </head>
-<body class="flex flex-col md:flex-row min-h-screen">
+<body class="flex min-h-screen overflow-x-hidden">
+
+    <!-- Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 hidden lg:hidden"></div>
 
     <!-- Mobile Header -->
-    <header class="md:hidden flex items-center p-4 border-b border-[#21262d] sticky top-0 z-50 bg-[#0b0d11]">
-        <button id="menu-toggle" class="p-2 text-[#8b949e] mr-4">
+    <div class="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+        <button id="mobile-toggle" class="p-2 text-gray-900 focus:outline-none hover:bg-gray-100 rounded-lg transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
         <div class="flex items-center space-x-2">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a371f7" stroke-width="2"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3z"></path></svg>
-            <span class="font-bold text-white tracking-tight">KS Tunnel</span>
+            <div class="w-6 h-6 bg-[#1a1d23] rounded flex items-center justify-center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3z"></path></svg>
+            </div>
+            <span class="text-sm font-extrabold">InApp</span>
         </div>
-    </header>
-
-    <!-- Mobile Backdrop -->
-    <div id="menu-backdrop" class="fixed inset-0 bg-black bg-opacity-70 z-30 hidden md:hidden"></div>
+        <div class="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
+            <img src="https://i.pravatar.cc/32?img=32" alt="avatar">
+        </div>
+    </div>
 
     <!-- Sidebar -->
-    <aside id="mobile-menu" class="fixed inset-y-0 left-0 z-[60] w-64 sidebar transform md:relative md:translate-x-0 -translate-x-full flex flex-col transition-transform duration-300 ease-in-out">
-        <div class="p-8 hidden md:flex items-center space-x-3 mb-4">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a371f7" stroke-width="2.5"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3z"></path></svg>
-            <h1 class="text-xl font-black text-white uppercase tracking-widest">KS Tunnel</h1>
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 sidebar lg:relative transition-transform duration-300 lg:translate-x-0 -translate-x-full flex flex-col p-6">
+        <div class="flex items-center space-x-3 mb-10 px-2">
+            <div class="w-8 h-8 bg-[#1a1d23] rounded-lg flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3z"></path></svg>
+            </div>
+            <span class="text-xl font-extrabold tracking-tight">InApp<span class="text-xs font-medium block text-gray-400 -mt-1 uppercase">Tunnel Manager</span></span>
         </div>
 
-        <nav class="flex-1 px-4 space-y-1">
-            <a href="#" data-section="dashboard" class="nav-link active-link flex items-center space-x-3 p-3 rounded-lg text-sm font-semibold transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                <span>Dashboard</span>
-            </a>
-            <a href="#" data-section="tunnels" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-sm font-semibold text-[#8b949e] hover:text-white transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                <span>Tunnels</span>
-            </a>
-            <a href="#" data-section="providers" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-sm font-semibold text-[#8b949e] hover:text-white transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                <span>Providers</span>
-            </a>
-            <a href="#" data-section="settings" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-sm font-semibold text-[#8b949e] hover:text-white transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span>Settings</span>
-            </a>
+        <div class="space-y-8 flex-1">
+            <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 px-2">Main</p>
+                <nav class="space-y-1">
+                    <a href="#" data-section="dashboard" class="nav-link active flex items-center space-x-3 px-4 py-3 text-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" data-section="tunnels" class="nav-link flex items-center space-x-3 px-4 py-3 text-sm text-gray-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <span>Inventory</span>
+                    </a>
+                    <a href="#" onclick="document.getElementById('add-modal').classList.remove('hidden')" class="nav-link flex items-center space-x-3 px-4 py-3 text-sm text-gray-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        <span>Add Product</span>
+                    </a>
+                    <a href="#" data-section="providers" class="nav-link flex items-center space-x-3 px-4 py-3 text-sm text-gray-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 10-8 0v2a2 2 0 002 2h4a2 2 0 002-2zm3-9a9 9 0 1118 0c0 1.49-.306 2.904-.812 4.187L18 7.5V12M14 12l2 2"></path></svg>
+                        <span>Reports</span>
+                    </a>
+                    <a href="#" class="nav-link flex items-center space-x-3 px-4 py-3 text-sm text-gray-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 0l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>404 Error</span>
+                    </a>
+                    <a href="#" class="nav-link flex items-center space-x-3 px-4 py-3 text-sm text-gray-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span>Docs</span>
+                    </a>
+                </nav>
+            </div>
 
-        </nav>
-
-        <div class="p-6 mt-auto">
-            <div class="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-tighter text-[#58a6ff]">
-                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_#58a6ff]"></div>
-                <span>Core Engine v1.0</span>
+            <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 px-2">Account</p>
+                <nav class="space-y-1">
+                    <a href="#" class="nav-link flex items-center space-x-3 px-4 py-3 text-sm text-gray-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                        <span>Log in</span>
+                    </a>
+                    <a href="#" class="nav-link flex items-center space-x-3 px-4 py-3 text-sm text-gray-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                        <span>Sign up</span>
+                    </a>
+                </nav>
             </div>
         </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-6 md:p-12 overflow-y-auto relative z-0">
+    <main class="flex-1 lg:p-10 p-6 pt-24 lg:pt-10 overflow-y-auto">
 
-        <!-- Dashboard Section -->
-        <section id="section-dashboard" class="space-y-10">
-            <div class="flex flex-col space-y-2">
-                <h2 class="text-3xl font-black text-white">Dashboard</h2>
-                <p class="text-sm text-[#8b949e]">Real-time system health and analytics overview.</p>
+        <!-- Top Bar -->
+        <div class="hidden lg:flex justify-between items-center mb-10">
+            <div>
+                <h1 id="page-title" class="text-3xl lg:text-4xl font-extrabold mb-1">Dashboard</h1>
+                <p class="text-sm text-gray-400">Your main content goes here...</p>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-                <div class="card p-8 flex flex-col items-center text-center">
-                    <span class="text-[#8b949e] text-[10px] font-bold uppercase tracking-widest mb-4">Total Nodes</span>
-                    <span id="stat-total" class="text-5xl font-black text-white">0</span>
-                </div>
-                <div class="card p-8 flex flex-col items-center text-center">
-                    <span class="text-[#8b949e] text-[10px] font-bold uppercase tracking-widest mb-4">Engines</span>
-                    <span id="stat-providers" class="text-5xl font-black text-[#a371f7]">0</span>
-                </div>
-                <div class="card p-8 flex flex-col items-center text-center">
-                    <span class="text-[#8b949e] text-[10px] font-bold uppercase tracking-widest mb-4">Healthy</span>
-                    <span id="stat-running" class="text-5xl font-black text-[#3fb950]">0</span>
-                </div>
-                <div class="card p-8 flex flex-col items-center text-center">
-                    <span class="text-[#8b949e] text-[10px] font-bold uppercase tracking-widest mb-4">Starting</span>
-                    <span id="stat-starting" class="text-5xl font-black text-[#d29922]">0</span>
-                </div>
-                <div class="card p-8 flex flex-col items-center text-center">
-                    <span class="text-[#8b949e] text-[10px] font-bold uppercase tracking-widest mb-4">Critical</span>
-                    <span id="stat-error" class="text-5xl font-black text-[#f85149]">0</span>
+            <div class="flex items-center space-x-4">
+                <button class="p-2 text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                </button>
+                <div class="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
+                    <img src="https://i.pravatar.cc/40?img=32" alt="avatar">
                 </div>
             </div>
+        </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Sections -->
+        <section id="section-dashboard" class="space-y-8">
+            <!-- Mobile Page Title -->
+            <div class="lg:hidden mb-6">
+                <h1 class="text-2xl font-extrabold text-gray-900">Dashboard</h1>
+                <p class="text-xs text-gray-400">System overview</p>
+            </div>
+
+            <!-- Summary Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <!-- Total Nodes -->
+                <div class="card p-6 summary-card-red relative flex items-center">
+                    <div class="w-12 h-12 icon-box-red rounded-xl flex items-center justify-center mr-4 shadow-lg shadow-red-200">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Nodes</p>
+                        <p id="stat-total" class="text-2xl font-extrabold text-gray-900">0</p>
+                        <p class="text-[10px] text-red-500 font-bold mt-1">+0% since last month</p>
+                    </div>
+                </div>
+                <!-- Engines -->
+                <div class="card p-6 summary-card-green relative flex items-center">
+                    <div class="w-12 h-12 icon-box-green rounded-xl flex items-center justify-center mr-4 shadow-lg shadow-green-200">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Engines</p>
+                        <p id="stat-providers" class="text-2xl font-extrabold text-gray-900">0</p>
+                        <p class="text-[10px] text-green-500 font-bold mt-1">+0% since last month</p>
+                    </div>
+                </div>
+                <!-- Healthy -->
+                <div class="card p-6 summary-card-blue relative flex items-center">
+                    <div class="w-12 h-12 icon-box-blue rounded-xl flex items-center justify-center mr-4 shadow-lg shadow-blue-200">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Healthy</p>
+                        <p id="stat-running" class="text-2xl font-extrabold text-gray-900">0</p>
+                        <p class="text-[10px] text-blue-500 font-bold mt-1">+0% since last month</p>
+                    </div>
+                </div>
+                <!-- Critical -->
+                <div class="card p-6 summary-card-yellow relative flex items-center">
+                    <div class="w-12 h-12 icon-box-yellow rounded-xl flex items-center justify-center mr-4 shadow-lg shadow-yellow-200">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Critical</p>
+                        <p id="stat-error" class="text-2xl font-extrabold text-gray-900">0</p>
+                        <p class="text-[10px] text-yellow-600 font-bold mt-1">+0% since last month</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Stats Rows -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div class="card p-8">
-                    <h3 class="text-sm font-bold text-[#8b949e] uppercase mb-8 text-center">Node Distribution</h3>
-                    <div class="h-64 flex justify-center">
-                        <canvas id="pieChart"></canvas>
-                    </div>
-                </div>
-                <div class="card p-8 flex flex-col">
-                    <h3 class="text-sm font-bold text-[#8b949e] uppercase mb-6">Recent Activity</h3>
-                    <div class="flex-1 space-y-4 overflow-y-auto">
-                        <div class="text-xs flex justify-between items-center border-b border-[#21262d] pb-2">
-                            <span class="text-white">System initialization complete.</span>
-                            <span class="text-[#8b949e]">Now</span>
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <p class="text-3xl font-extrabold text-gray-900" id="stat-active-sessions">0</p>
+                            <p class="text-sm font-medium text-gray-400">Total Active Tunnels</p>
+                        </div>
+                        <div class="p-3 bg-red-50 text-red-500 rounded-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                         </div>
                     </div>
+                    <div class="h-px bg-gray-100 mb-6"></div>
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs font-bold text-green-500">+100% vs Last Month</p>
+                        <a href="#" class="text-xs font-bold text-red-500 hover:underline">View</a>
+                    </div>
+                </div>
+                <div class="card p-8">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <p class="text-3xl font-extrabold text-gray-900" id="stat-starting-count">0</p>
+                            <p class="text-sm font-medium text-gray-400">Pending Startups</p>
+                        </div>
+                        <div class="p-3 bg-blue-50 text-blue-500 rounded-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                    </div>
+                    <div class="h-px bg-gray-100 mb-6"></div>
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs font-bold text-gray-400">Stabilizing</p>
+                        <a href="#" class="text-xs font-bold text-red-500 hover:underline">View</a>
+                    </div>
+                </div>
+                <div class="card p-8">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <p class="text-3xl font-extrabold text-gray-900" id="stat-uptime">99.9%</p>
+                            <p class="text-sm font-medium text-gray-400">System Uptime</p>
+                        </div>
+                        <div class="p-3 bg-yellow-50 text-yellow-600 rounded-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        </div>
+                    </div>
+                    <div class="h-px bg-gray-100 mb-6"></div>
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs font-bold text-green-500">Stable</p>
+                        <a href="#" class="text-xs font-bold text-red-500 hover:underline">View</a>
+                    </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Tunnels Section -->
-        <section id="section-tunnels" class="hidden space-y-10">
-            <div class="flex justify-between items-end">
-                <div class="flex flex-col space-y-2">
-                    <h2 class="text-3xl font-black text-white">Tunnels</h2>
-                    <p class="text-sm text-[#8b949e]">Manage and monitor your active reverse tunnels.</p>
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div class="card p-8">
+                    <div class="flex justify-between items-center mb-10">
+                        <h3 class="text-lg font-extrabold">Tunnel Activity</h3>
+                        <select class="bg-gray-50 border-none text-xs font-bold rounded-lg px-3 py-2 outline-none">
+                            <option>This Year</option>
+                        </select>
+                    </div>
+                    <div class="h-80">
+                        <canvas id="barChart"></canvas>
+                    </div>
                 </div>
-                <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="btn-purple px-8 py-3 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(163,113,247,0.3)] flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M12 4v16m8-8H4"></path></svg>
-                    New Tunnel
-                </button>
-            </div>
-
-            <div id="tunnel-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-                <!-- Tunnel Cards will be inserted here -->
-            </div>
-        </section>
-
-        <!-- Providers Section -->
-        <section id="section-providers" class="hidden space-y-10">
-            <div class="flex justify-between items-end">
-                <div class="flex flex-col space-y-2">
-                    <h2 class="text-3xl font-black text-white">Providers</h2>
-                    <p class="text-sm text-[#8b949e]">Engine definitions for reverse tunnel binaries.</p>
-                </div>
-                <button onclick="document.getElementById('provider-modal').classList.remove('hidden')" class="btn-purple px-8 py-3 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(163,113,247,0.3)] flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M12 4v16m8-8H4"></path></svg>
-                    New Provider
-                </button>
-            </div>
-
-            <div id="provider-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Provider Cards will be inserted here -->
-            </div>
-        </section>
-
-        <!-- Settings Section -->
-        <section id="section-settings" class="hidden space-y-10">
-            <div class="flex flex-col space-y-2">
-                <h2 class="text-3xl font-black text-white">Settings</h2>
-                <p class="text-sm text-[#8b949e]">Configure global parameters and integrations.</p>
-            </div>
-
-            <div class="max-w-3xl space-y-8">
-                <div class="card p-10">
-                    <h3 class="text-lg font-bold mb-8 text-white flex items-center">
-                        <svg class="w-5 h-5 mr-3 text-[#a371f7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                        Engine Configuration
-                    </h3>
-                    <div class="space-y-6">
-                        <div class="flex items-center justify-between p-4 bg-[#0b0d11] rounded-xl">
+                <div class="card p-8">
+                    <div class="flex justify-between items-center mb-10">
+                        <h3 class="text-lg font-extrabold">Overall Information</h3>
+                        <select class="bg-gray-50 border-none text-xs font-bold rounded-lg px-3 py-2 outline-none">
+                            <option>Last 6 Months</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-1/2 h-64">
+                            <canvas id="doughnutChart"></canvas>
+                        </div>
+                        <div class="w-1/2 pl-10 space-y-6">
                             <div>
-                                <div class="text-sm font-bold">Auto-Resume</div>
-                                <div class="text-[10px] text-[#8b949e]">Reconnect tunnels on system startup</div>
+                                <p class="text-sm font-medium text-gray-400 mb-1">Total Requests</p>
+                                <p class="text-3xl font-extrabold">5.5K</p>
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-600 text-[10px] font-bold rounded mt-2">↑ 26%</span>
                             </div>
-                            <div class="w-12 h-6 bg-[#30363d] rounded-full relative cursor-pointer">
-                                <div class="absolute right-1 top-1 w-4 h-4 bg-[#a371f7] rounded-full"></div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-400 mb-1">Average Latency</p>
+                                <p class="text-3xl font-extrabold">120ms</p>
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-600 text-[10px] font-bold rounded mt-2">↑ 12%</span>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Tunnels Section (Inventory) -->
+        <section id="section-tunnels" class="hidden space-y-8">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h1 class="text-3xl font-extrabold mb-1">Tunnel Inventory</h1>
+                    <p class="text-sm text-gray-400">Manage your active reverse connections.</p>
+                </div>
+                <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="btn-primary px-6 py-3 rounded-xl font-bold text-sm">
+                    Create New Tunnel
+                </button>
+            </div>
+            <div id="tunnel-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- Tunnels inserted by JS -->
+            </div>
+        </section>
+
+        <!-- Providers Section (Reports) -->
+        <section id="section-providers" class="hidden space-y-8">
+             <div class="flex justify-between items-end">
+                <div>
+                    <h1 class="text-3xl font-extrabold mb-1">Engine Reports</h1>
+                    <p class="text-sm text-gray-400">Available tunnel provider engines.</p>
+                </div>
+                <button onclick="document.getElementById('provider-modal').classList.remove('hidden')" class="btn-primary px-6 py-3 rounded-xl font-bold text-sm">
+                    Add Provider
+                </button>
+            </div>
+            <div id="provider-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- Providers inserted by JS -->
             </div>
         </section>
 
     </main>
 
-    <!-- Add/Edit Modal -->
-    <div id="add-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
-        <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" onclick="closeModal('add-modal')"></div>
-        <div class="card w-full max-w-2xl relative z-10 shadow-2xl overflow-hidden border-t-4 border-[#a371f7]">
-            <div class="p-8 md:p-12">
-                <div class="flex justify-between items-center mb-10">
-                    <h2 id="modal-title" class="text-3xl font-black text-white">Create Node</h2>
-                    <button onclick="closeModal('add-modal')" class="text-[#8b949e] hover:text-white">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                <form id="tunnel-form" class="space-y-8">
-                    <input type="hidden" name="id">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div class="space-y-6 md:col-span-2">
-                            <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Deployment Identity</label>
-                            <input type="text" name="name" placeholder="Service Name (e.g. Production API)" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all placeholder:text-[#30363d]" required>
-                        </div>
-                        <div class="space-y-6">
-                            <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Provider Engine</label>
-                            <div class="relative">
-                                <select name="type" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none cursor-pointer appearance-none">
-                                    <option value="cloudflare">Cloudflare Quick Tunnel</option>
-                                    <option value="ngrok">Ngrok SDK (Official)</option>
-                                </select>
-                                <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[#8b949e]">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"></path></svg>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="space-y-6" id="port-field">
-                            <label class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Internal Target</label>
-                            <div class="flex space-x-2">
-                                <select name="protocol" class="bg-[#0b0d11] border border-[#21262d] rounded-2xl px-4 text-white focus:ring-2 ring-[#a371f7]/30 outline-none">
-                                    <option value="http">HTTP</option>
-                                    <option value="https">HTTPS</option>
-                                    <option value="tcp">TCP</option>
-                                    <option value="tls">TLS</option>
-                                </select>
-                                <input type="text" name="local_addr" placeholder="8080 or localhost:3000" class="flex-1 bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all placeholder:text-[#30363d]">
-                            </div>
-                        </div>
-                    </div>
-                    <div id="token-field" class="hidden space-y-6">
-                        <label id="token-label" class="block text-[10px] font-black text-[#8b949e] uppercase tracking-[0.3em]">Auth Token</label>
-                        <input type="password" name="token" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-2xl p-5 text-white focus:ring-2 ring-[#a371f7]/30 border-[#a371f7]/50 outline-none transition-all">
-                    </div>
-                    <div class="flex flex-col md:flex-row justify-end space-y-4 md:space-y-0 md:space-x-6 pt-10">
-                        <button type="button" onclick="closeModal('add-modal')" class="px-8 py-5 text-sm font-bold text-[#8b949e] hover:text-white transition-colors">Discard Changes</button>
-                        <button type="submit" class="btn-purple px-12 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl active:scale-95 transition-all">Execute Node</button>
-                    </div>
-                </form>
+    <!-- Modals (Add, Provider, Logs) - Adapted for Light Theme -->
+    <div id="add-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-xl p-10 shadow-2xl overflow-hidden relative">
+            <div class="flex justify-between items-center mb-8">
+                <h2 id="modal-title" class="text-2xl font-extrabold">Create Node</h2>
+                <button onclick="closeModal('add-modal')" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
             </div>
+            <form id="tunnel-form" class="space-y-6">
+                <input type="hidden" name="id">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Node Identity</label>
+                    <input type="text" name="name" placeholder="e.g. My Secure Tunnel" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none transition-all" required>
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Engine</label>
+                        <select name="type" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none appearance-none cursor-pointer">
+                            <option value="cloudflare">Cloudflare Quick</option>
+                            <option value="ngrok">Ngrok SDK</option>
+                        </select>
+                    </div>
+                    <div id="port-field" class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Internal Port</label>
+                        <div class="flex">
+                            <select name="protocol" class="bg-gray-100 border-r border-gray-200 rounded-l-xl px-3 text-xs font-bold outline-none">
+                                <option value="http">HTTP</option>
+                                <option value="tcp">TCP</option>
+                            </select>
+                            <input type="text" name="local_addr" placeholder="8080" class="flex-1 bg-gray-50 border border-gray-100 border-l-0 rounded-r-xl p-4 text-sm focus:border-red-500 outline-none transition-all">
+                        </div>
+                    </div>
+                </div>
+                <div id="token-field" class="hidden space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Auth Token</label>
+                    <input type="password" name="token" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none">
+                </div>
+                <div class="pt-6 flex justify-end space-x-4">
+                    <button type="button" onclick="closeModal('add-modal')" class="text-sm font-bold text-gray-400 hover:text-gray-600">Cancel</button>
+                    <button type="submit" class="btn-primary px-10 py-4 rounded-2xl font-extrabold text-xs uppercase tracking-widest">Deploy Node</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <!-- Provider Modal -->
-    <div id="provider-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
-        <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" onclick="closeModal('provider-modal')"></div>
-        <div class="card w-full max-w-xl relative z-10 shadow-2xl overflow-hidden border-t-4 border-[#a371f7]">
-            <div class="p-8 md:p-12">
-                <h2 class="text-2xl font-black mb-8 text-white">Add Provider Engine</h2>
-                <form id="provider-form" class="space-y-6">
-                    <div>
-                        <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Provider Name</label>
-                        <input type="text" name="name" placeholder="e.g. My Custom Proxy" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white focus:border-[#a371f7] outline-none" required>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Execution Command</label>
-                        <input type="text" name="command" placeholder="example --port ${Port} --token ${Token}" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white font-mono text-sm focus:border-[#a371f7] outline-none" required>
-                        <p class="mt-2 text-[9px] text-[#8b949e]">Use ${Variable} for dynamic fields.</p>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black mb-3 text-[#8b949e] uppercase tracking-[0.2em]">Public URL Regex (Optional)</label>
-                        <input type="text" name="regex" placeholder="https://[a-z0-9-]+\.example\.com" class="w-full bg-[#0b0d11] border border-[#21262d] rounded-xl p-4 text-white font-mono text-sm focus:border-[#a371f7] outline-none">
-                    </div>
-                    <div class="flex justify-end space-x-4 pt-6">
-                        <button type="button" onclick="closeModal('provider-modal')" class="text-sm font-bold text-[#8b949e] hover:text-white">Cancel</button>
-                        <button type="submit" class="btn-purple px-10 py-4 rounded-xl font-black uppercase tracking-widest text-xs">Save Engine</button>
-                    </div>
-                </form>
-            </div>
+    <div id="provider-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-lg p-10 shadow-2xl">
+            <h2 class="text-2xl font-extrabold mb-8">Add Provider Engine</h2>
+            <form id="provider-form" class="space-y-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Engine Name</label>
+                    <input type="text" name="name" placeholder="e.g. My Proxy" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none" required>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Exec Command</label>
+                    <input type="text" name="command" placeholder="binary --port ${Port}" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm font-mono focus:border-red-500 outline-none" required>
+                </div>
+                <div class="pt-6 flex justify-end space-x-4">
+                    <button type="button" onclick="closeModal('provider-modal')" class="text-sm font-bold text-gray-400 hover:text-gray-600">Cancel</button>
+                    <button type="submit" class="btn-primary px-10 py-4 rounded-2xl font-extrabold text-xs uppercase tracking-widest">Save Engine</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Logs Modal -->
-    <div id="logs-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-10">
-        <div class="absolute inset-0 bg-black/95 backdrop-blur-2xl" onclick="closeModal('logs-modal')"></div>
-        <div class="card w-full max-w-5xl h-[80vh] relative z-10 shadow-2xl flex flex-col border border-[#30363d]">
-            <div class="p-6 border-b border-[#21262d] flex justify-between items-center bg-[#11141a]">
-                <div class="flex items-center space-x-4">
-                    <div class="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <h2 class="ml-4 text-xs font-black text-[#8b949e] uppercase tracking-widest">Tunnel Terminal Output — <span id="log-node-name" class="text-white"></span></h2>
+    <!-- Logs Modal (Terminal Style) -->
+    <div id="logs-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+        <div class="bg-[#1a1d23] rounded-3xl w-full max-w-4xl h-[70vh] flex flex-col shadow-2xl border border-gray-800 overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span class="ml-4 text-xs font-bold text-gray-500 uppercase tracking-widest">Terminal Output — <span id="log-node-name" class="text-white"></span></span>
                 </div>
-                <button onclick="closeModal('logs-modal')" class="text-[#8b949e] hover:text-white">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button onclick="closeModal('logs-modal')" class="text-gray-500 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <div id="log-container" class="flex-1 p-8 font-mono text-sm overflow-y-auto bg-black text-green-400 space-y-2 selection:bg-[#a371f7] selection:text-white">
-                <!-- Logs will be inserted here -->
-                <div class="opacity-50"># Initializing stream...</div>
-            </div>
-            <div class="p-4 bg-[#0b0d11] border-t border-[#21262d] flex justify-between text-[10px] text-[#8b949e] font-bold uppercase tracking-widest">
-                <span>STDOUT / STDERR REPL</span>
-                <span class="flex items-center"><span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-2 animate-pulse"></span> Live Stream Active</span>
+            <div id="log-container" class="flex-1 p-8 font-mono text-xs overflow-y-auto bg-black text-gray-300 space-y-1">
+                <!-- Logs here -->
             </div>
         </div>
     </div>

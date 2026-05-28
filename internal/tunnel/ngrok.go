@@ -99,7 +99,13 @@ func (p *NgrokProvider) forward(tun ngrok.Tunnel) {
 func (p *NgrokProvider) handleConn(conn net.Conn) {
 	defer conn.Close()
 	p.addLog(fmt.Sprintf("Forwarding connection from %s", conn.RemoteAddr()))
-	dest, err := net.Dial("tcp", p.localAddr)
+
+	localAddr := p.localAddr
+	if _, _, err := net.SplitHostPort(localAddr); err != nil {
+		localAddr = "localhost:" + localAddr
+	}
+
+	dest, err := net.Dial("tcp", localAddr)
 	if err != nil {
 		p.addLog(fmt.Sprintf("Failed to dial local addr %s: %v", p.localAddr, err))
 		return
