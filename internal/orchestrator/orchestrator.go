@@ -86,37 +86,43 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:    "Bore",
 			Type:    "Built-in Engine",
-			Command: "bore local ${Port} --to bore.pub",
+			Command: "bore local ${Port} --to bore.pub --secret ${Secret} --id ${ID}",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Secret", ID: "Secret", Type: "input"},
+				{Name: "ID", ID: "ID", Type: "input"},
 			},
 			Regex: `bore.pub:[0-9]+`,
 		},
 		{
 			Name:    "Loophole",
 			Type:    "Built-in Engine",
-			Command: "loophole http ${Port}",
+			Command: "loophole http ${Port} --hostname ${Subdomain} --token ${Token}",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Subdomain", ID: "Subdomain", Type: "input"},
+				{Name: "Token", ID: "Token", Type: "input"},
 			},
 			Regex: `https?://[a-zA-Z0-9.-]+\.loophole\.site`,
 		},
 		{
 			Name:    "Serveo",
 			Type:    "Built-in Engine",
-			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:localhost:${Port} serveo.net",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R ${Subdomain}:80:localhost:${Port} serveo.net",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Subdomain", ID: "Subdomain", Type: "input"},
 			},
 			Regex: `https?://[a-zA-Z0-9.-]+\.serveo\.net`,
 		},
 		{
 			Name:    "Pinggy.io",
 			Type:    "Built-in Engine",
-			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 443 -R0:localhost:${Port}+${Protocol}@ssh.pinggy.io",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 443 -R0:localhost:${Port}+${Protocol}@ssh.pinggy.io ${Token}",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 				{Name: "Protocol", ID: "Protocol", Type: "select", DefaultValue: "http", Options: []VariableOption{{Name: "HTTP", Value: "http"}, {Name: "TCP", Value: "tcp"}}},
+				{Name: "Token", ID: "Token", Type: "input"},
 			},
 			Regex: `https?://[a-zA-Z0-9.-]+\.pinggy\.link`,
 		},
@@ -301,6 +307,7 @@ func (o *Orchestrator) SeedNgrok() {
 		Variables: []VariableDef{
 			{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 			{Name: "Token", ID: "Token", Type: "input"},
+			{Name: "Domain", ID: "Domain", Type: "input"},
 		},
 	}
 }

@@ -83,7 +83,8 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 			if token == "" {
 				token = req.Token
 			}
-			provider = tunnel.NewNgrokProvider(id, req.Name, localAddr, token)
+			domain := req.Config["Domain"]
+			provider = tunnel.NewNgrokProvider(id, req.Name, localAddr, token, domain)
 		} else {
 			// Check if it's a custom provider
 			pDef, ok := s.orch.GetProvider(req.Type)

@@ -16,6 +16,7 @@ type NgrokProvider struct {
 	name      string
 	localAddr string
 	token     string
+	domain    string
 	session   ngrok.Session
 	tunnel    ngrok.Tunnel
 	status    Status
@@ -25,12 +26,13 @@ type NgrokProvider struct {
 	mu        sync.RWMutex
 }
 
-func NewNgrokProvider(id, name, localAddr, token string) *NgrokProvider {
+func NewNgrokProvider(id, name, localAddr, token, domain string) *NgrokProvider {
 	return &NgrokProvider{
 		id:        id,
 		name:      name,
 		localAddr: localAddr,
 		token:     token,
+		domain:    domain,
 		status:    StatusStopped,
 	}
 }
@@ -54,8 +56,13 @@ func (p *NgrokProvider) Start(ctx context.Context) error {
 		ngrok.WithAuthtoken(p.token),
 	}
 
+	endpointOpts := []config.HTTPEndpointOption{}
+	if p.domain != "" {
+		endpointOpts = append(endpointOpts, config.WithDomain(p.domain))
+	}
+
 	tun, err := ngrok.Listen(ctx,
-		config.HTTPEndpoint(),
+		config.HTTPEndpoint(endpointOpts...),
 		opts...,
 	)
 	if err != nil {
@@ -163,8 +170,9 @@ func (p *NgrokProvider) Status() TunnelInfo {
 		Status:    p.status,
 		Error:     errStr,
 		Config: map[string]string{
-			"Port":  p.localAddr,
-			"Token": p.token,
+			"Port":   p.localAddr,
+			"Token":  p.token,
+			"Domain": p.domain,
 		},
 	}
 }
