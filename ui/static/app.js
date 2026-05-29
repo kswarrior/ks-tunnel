@@ -5,6 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.getElementById('sidebar');
     const mobileToggle = document.getElementById('mobile-toggle');
 
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const toggleMobileMenu = () => {
+        sidebar.classList.toggle('-translate-x-full');
+        backdrop.classList.toggle('hidden');
+    };
+
     const showSection = (sectionId) => {
         sections.forEach(s => {
             const el = document.getElementById(`section-${s}`);
@@ -24,10 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Update Title
-        const titles = { dashboard: 'Dashboard', tunnels: 'Inventory', providers: 'Reports' };
+        const titles = { dashboard: 'Dashboard', tunnels: 'Tunnels', providers: 'Providers' };
         document.getElementById('page-title').innerText = titles[sectionId] || 'Dashboard';
 
-        if (window.innerWidth < 1024) sidebar.classList.add('-translate-x-full');
+        // Close sidebar and backdrop on navigation
+        if (!sidebar.classList.contains('-translate-x-full')) {
+            sidebar.classList.add('-translate-x-full');
+            backdrop.classList.add('hidden');
+        }
     };
 
     navLinks.forEach(link => {
@@ -39,46 +49,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const backdrop = document.getElementById('sidebar-backdrop');
-    const toggleMobileMenu = () => {
-        sidebar.classList.toggle('-translate-x-full');
-        backdrop.classList.toggle('hidden');
-    };
-
     mobileToggle.addEventListener('click', toggleMobileMenu);
     backdrop.addEventListener('click', toggleMobileMenu);
 
+    // Close sidebar if user clicks on the main content while it's open (mobile)
+    document.querySelector('main').addEventListener('click', () => {
+        if (window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
+            toggleMobileMenu();
+        }
+    });
+
     // Charting Logic
-    let barChart = null;
     let doughnutChart = null;
 
     const initCharts = () => {
-        const barCtx = document.getElementById('barChart')?.getContext('2d');
-        if (barCtx) {
-            barChart = new Chart(barCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['28 Jan', '29 Jan', '30 Jan', '31 Jan', '1 Feb', '2 Feb', '3 Feb', '4 Feb', '5 Feb'],
-                    datasets: [{
-                        label: 'Requests',
-                        data: [65, 59, 80, 81, 56, 55, 40, 70, 90],
-                        backgroundColor: '#ff5b5b',
-                        borderRadius: 6,
-                        barThickness: 20
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { border: { display: false }, grid: { color: '#f0f2f5' } },
-                        x: { border: { display: false }, grid: { display: false } }
-                    }
-                }
-            });
-        }
-
         const doughnutCtx = document.getElementById('doughnutChart')?.getContext('2d');
         if (doughnutCtx) {
             doughnutChart = new Chart(doughnutCtx, {
