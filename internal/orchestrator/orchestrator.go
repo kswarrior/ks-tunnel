@@ -132,6 +132,32 @@ func (o *Orchestrator) seedDefaultProviders() {
 			Command: "playit",
 			Regex:   `[a-zA-Z0-9.-]+\.playit\.gg`,
 		},
+		{
+			Name:       "Zrok",
+			Type:       "Built-in Engine",
+			Command:    "zrok share public http://localhost:${Port}",
+			Variables:  []VariableDef{{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"}},
+			Regex:      `https?://[a-zA-Z0-9-]+\.share\.zrok\.io`,
+			CheckCmd:   "zrok version",
+			InstallCmd: "curl -sSL https://get.openziti.io/install.sh | bash",
+		},
+		{
+			Name:    "Localhost.run",
+			Type:    "Built-in Engine",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:localhost:${Port} nokey@localhost.run",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.lhr\.life`,
+		},
+		{
+			Name:       "Telebit",
+			Type:       "Built-in Engine",
+			Command:    "telebit http ${Port}",
+			Variables:  []VariableDef{{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"}},
+			CheckCmd:   "telebit version",
+			InstallCmd: "curl -sSL https://get.telebit.io | bash",
+		},
 	}
 
 	for _, p := range defaults {

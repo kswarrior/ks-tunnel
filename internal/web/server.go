@@ -109,6 +109,11 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 
 		// Always try to start (or restart) after create/edit
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// Log panic or handle it silently
+				}
+			}()
 			s.orch.StartTunnel(context.Background(), id)
 		}()
 
@@ -131,6 +136,11 @@ func (s *Server) handleStartTunnel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				// Log panic
+			}
+		}()
 		s.orch.StartTunnel(context.Background(), req.ID)
 	}()
 	w.WriteHeader(http.StatusOK)
@@ -167,10 +177,14 @@ func (s *Server) handleRestartTunnel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := s.orch.RestartTunnel(context.Background(), req.ID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				// Log panic
+			}
+		}()
+		s.orch.RestartTunnel(context.Background(), req.ID)
+	}()
 	w.WriteHeader(http.StatusOK)
 }
 
