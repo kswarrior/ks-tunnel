@@ -53,9 +53,11 @@ func (o *Orchestrator) seedDefaultProviders() {
 	o.SeedNgrok()
 	defaults := []ProviderDef{
 		{
-			Name:    "Cloudflare (Quick)",
-			Type:    "Built-in Engine",
-			Command: "cloudflared tunnel --url http://localhost:${Port}",
+			Name:       "Cloudflare (Quick)",
+			Type:       "Built-in Engine",
+			Command:    "cloudflared tunnel --url http://localhost:${Port}",
+			CheckCmd:   "which cloudflared",
+			InstallCmd: "curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared && chmod +x cloudflared && mv cloudflared /usr/local/bin/",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 			},
@@ -70,9 +72,11 @@ func (o *Orchestrator) seedDefaultProviders() {
 			},
 		},
 		{
-			Name:    "Localtunnel",
-			Type:    "Built-in Engine",
-			Command: "lt --port ${Port}",
+			Name:       "Localtunnel",
+			Type:       "Built-in Engine",
+			Command:    "lt --port ${Port}",
+			CheckCmd:   "which lt",
+			InstallCmd: "npm install -g localtunnel",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 			},

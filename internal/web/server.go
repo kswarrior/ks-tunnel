@@ -107,10 +107,9 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Always try to start (or restart) after create/edit
-		if err := s.orch.StartTunnel(context.Background(), id); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		go func() {
+			s.orch.StartTunnel(context.Background(), id)
+		}()
 
 		w.WriteHeader(http.StatusCreated)
 	default:
@@ -130,10 +129,9 @@ func (s *Server) handleStartTunnel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := s.orch.StartTunnel(context.Background(), req.ID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	go func() {
+		s.orch.StartTunnel(context.Background(), req.ID)
+	}()
 	w.WriteHeader(http.StatusOK)
 }
 

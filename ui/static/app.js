@@ -313,6 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <h3 class="font-extrabold text-gray-900">${t.name}</h3>
                             </div>
                             <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${t.type} • ${t.status}</p>
+                            ${t.error ? `<p class="text-[9px] text-red-500 font-medium bg-red-50 p-1 rounded mt-1">${t.error}</p>` : ''}
                         </div>
                         <div class="flex space-x-1">
                              <button onclick="showLogs('${t.id}', '${t.name}')" class="p-2 text-gray-400 hover:bg-gray-50 rounded-lg">
@@ -350,12 +351,23 @@ document.addEventListener('DOMContentLoaded', () => {
             config: {}
         };
         Object.keys(rawData).forEach(k => { if(k.startsWith('config_')) data.config[k.replace('config_', '')] = rawData[k]; });
-        const res = await fetch('/api/tunnels', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        if (res.ok) { closeModal('add-modal'); fetchTunnels(); updateStats(); }
+        try {
+            const res = await fetch('/api/tunnels', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                closeModal('add-modal');
+                fetchTunnels();
+                updateStats();
+            } else {
+                const err = await res.text();
+                alert('Error: ' + err);
+            }
+        } catch (e) {
+            alert('Failed to connect to server');
+        }
     });
 
     window.startTunnel = async (id) => { await fetch('/api/tunnels/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); };
