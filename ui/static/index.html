@@ -144,7 +144,6 @@
                     <div>
                         <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Nodes</p>
                         <p id="stat-total" class="text-2xl font-extrabold text-gray-900">0</p>
-                        <p class="text-[10px] text-red-500 font-bold mt-1">+0% since last month</p>
                     </div>
                 </div>
                 <!-- Engines -->
@@ -155,7 +154,6 @@
                     <div>
                         <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Engines</p>
                         <p id="stat-providers" class="text-2xl font-extrabold text-gray-900">0</p>
-                        <p class="text-[10px] text-green-500 font-bold mt-1">+0% since last month</p>
                     </div>
                 </div>
                 <!-- Healthy -->
@@ -166,7 +164,6 @@
                     <div>
                         <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Healthy</p>
                         <p id="stat-running" class="text-2xl font-extrabold text-gray-900">0</p>
-                        <p class="text-[10px] text-blue-500 font-bold mt-1">+0% since last month</p>
                     </div>
                 </div>
                 <!-- Critical -->
@@ -177,7 +174,6 @@
                     <div>
                         <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Critical</p>
                         <p id="stat-error" class="text-2xl font-extrabold text-gray-900">0</p>
-                        <p class="text-[10px] text-yellow-600 font-bold mt-1">+0% since last month</p>
                     </div>
                 </div>
             </div>
@@ -228,10 +224,12 @@
                     </div>
                 </div>
                 <div class="card p-8 flex flex-col justify-center items-center text-center">
-                    <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4 transition-colors duration-500">
+                        <div id="system-status-icon">
+                            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">System Healthy</h3>
+                    <h3 id="system-status-msg" class="text-xl font-bold mb-2">System Healthy</h3>
                     <p class="text-sm text-gray-400">All tunnel orchestrators are running within normal parameters.</p>
                 </div>
             </div>
@@ -241,11 +239,11 @@
         <section id="section-tunnels" class="hidden space-y-8">
             <div class="flex justify-between items-end">
                 <div>
-                    <h1 class="text-3xl font-extrabold mb-1">Tunnel Inventory</h1>
+                    <h1 class="text-3xl font-extrabold mb-1">Tunnels</h1>
                     <p class="text-sm text-gray-400">Manage your active reverse connections.</p>
                 </div>
                 <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="btn-primary px-6 py-3 rounded-xl font-bold text-sm">
-                    Create New Tunnel
+                    [+ Add]
                 </button>
             </div>
             <div id="tunnel-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -257,11 +255,11 @@
         <section id="section-providers" class="hidden space-y-8">
              <div class="flex justify-between items-end">
                 <div>
-                    <h1 class="text-3xl font-extrabold mb-1">Engine Reports</h1>
+                    <h1 class="text-3xl font-extrabold mb-1">Providers</h1>
                     <p class="text-sm text-gray-400">Available tunnel provider engines.</p>
                 </div>
                 <button onclick="document.getElementById('provider-modal').classList.remove('hidden')" class="btn-primary px-6 py-3 rounded-xl font-bold text-sm">
-                    Add Provider
+                    [+ Add]
                 </button>
             </div>
             <div id="provider-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

@@ -55,8 +55,24 @@ func NewGenericProvider(id, name, typeName, cmdStr, regex, checkCmd, installCmd 
 
 func (p *GenericProvider) interpolate(cmd string) string {
 	for k, v := range p.variables {
-		cmd = strings.ReplaceAll(cmd, "${"+k+"}", v)
+		placeholder := "${" + k + "}"
+		if v == "" {
+			// If value is empty, try to remove the preceding flag
+			// Matches patterns like "--subdomain ${Subdomain}" or "-s ${Subdomain}"
+		// Use literal string matching or escape the placeholder correctly for regex
+		safePlaceholder := regexp.QuoteMeta(placeholder)
+		re := regexp.MustCompile(`\s--?[a-zA-Z0-9-]+\s` + safePlaceholder)
+			if re.MatchString(cmd) {
+				cmd = re.ReplaceAllString(cmd, "")
+			} else {
+				cmd = strings.ReplaceAll(cmd, placeholder, "")
+			}
+		} else {
+			cmd = strings.ReplaceAll(cmd, placeholder, v)
+		}
 	}
+	// Clean up double spaces
+	cmd = strings.Join(strings.Fields(cmd), " ")
 	return cmd
 }
 

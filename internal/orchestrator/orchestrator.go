@@ -74,11 +74,12 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:       "Localtunnel",
 			Type:       "Built-in Engine",
-			Command:    "lt --port ${Port}",
+			Command:    "lt --port ${Port} --subdomain ${Subdomain}",
 			CheckCmd:   "which lt",
 			InstallCmd: "npm install -g localtunnel",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Subdomain", ID: "Subdomain", Type: "input", DefaultValue: ""},
 			},
 			Regex: `https?://[a-zA-Z0-9.-]+\.(loca\.lt|localtunnel\.me)`,
 		},

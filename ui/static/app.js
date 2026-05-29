@@ -221,6 +221,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 doughnutChart.data.datasets[0].data = [stats.running, stats.error, stats.starting];
                 doughnutChart.update();
             }
+
+            const systemStatus = document.getElementById('system-status-msg');
+            const systemIcon = document.getElementById('system-status-icon');
+            if (systemStatus && systemIcon) {
+                if (stats.error > 0) {
+                    systemStatus.innerText = 'Action Required';
+                    systemIcon.innerHTML = '<svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+                    systemIcon.parentElement.classList.replace('bg-green-50', 'bg-yellow-50');
+                } else {
+                    systemStatus.innerText = 'System Healthy';
+                    systemIcon.innerHTML = '<svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                    systemIcon.parentElement.classList.replace('bg-yellow-50', 'bg-green-50');
+                }
+            }
         } catch (err) {}
     };
 
@@ -400,5 +414,5 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchProviders();
     fetchTunnels();
     updateStats();
-    setInterval(() => { fetchTunnels(); updateStats(); }, 5000);
+    setInterval(() => { fetchTunnels(); updateStats(); }, 2000);
 });
