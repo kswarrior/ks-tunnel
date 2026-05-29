@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KS Tunnel | Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1d23;
+        }
+        .sidebar {
+            background-color: white;
+            border-right: 1px solid #eef0f2;
+        }
+        .card {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            border: 1px solid #f0f2f5;
+        }
+        .nav-link {
+            transition: all 0.2s;
+            border-radius: 12px;
+        }
+        .nav-link:hover {
+            background-color: #fff1f0;
+            color: #ff5b5b;
+        }
+        .nav-link.active {
+            background-color: #fff1f0;
+            color: #ff5b5b;
+            font-weight: 700;
+        }
+        .summary-card-red { background-color: #fff1f0; }
+        .summary-card-green { background-color: #e9fbf0; }
+        .summary-card-blue { background-color: #e6f7ff; }
+        .summary-card-yellow { background-color: #fffbe6; }
+
+        .icon-box-red { background-color: #ff5b5b; }
+        .icon-box-green { background-color: #3fb950; }
+        .icon-box-blue { background-color: #1890ff; }
+        .icon-box-yellow { background-color: #faad14; }
+
+        .btn-primary {
+            background-color: #ff5b5b;
+            color: white;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #e04a4a;
+            box-shadow: 0 4px 15px rgba(255, 91, 91, 0.3);
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar-collapsed { transform: translateX(-100%); }
+        }
+    </style>
+</head>
+<body class="flex min-h-screen overflow-x-hidden">
+
+    <!-- Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 hidden lg:hidden"></div>
+
+    <!-- Mobile Header -->
+    <div class="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+        <button id="mobile-toggle" class="p-2 text-gray-900 focus:outline-none hover:bg-gray-100 rounded-lg transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+        <div class="flex items-center space-x-2">
+            <div class="w-6 h-6 bg-[#1a1d23] rounded flex items-center justify-center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3z"></path></svg>
+            </div>
+            <span class="text-sm font-extrabold">KS Tunnel</span>
+        </div>
+        <div class="w-8"></div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 sidebar lg:relative transition-transform duration-300 lg:translate-x-0 -translate-x-full flex flex-col p-6">
+        <div class="flex items-center space-x-3 mb-10 px-2">
+            <div class="w-8 h-8 bg-[#1a1d23] rounded-lg flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3z"></path></svg>
+            </div>
+            <span class="text-xl font-extrabold tracking-tight">KS Tunnel<span class="text-xs font-medium block text-gray-400 -mt-1 uppercase">Reverse Tunnel Manager</span></span>
+        </div>
+
+        <div class="space-y-8 flex-1">
+            <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 px-2">Main</p>
+                <nav class="space-y-1">
+                    <a href="#" data-section="dashboard" class="nav-link active flex items-center space-x-3 px-4 py-3 text-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" data-section="tunnels" class="nav-link flex items-center space-x-3 px-4 py-3 text-sm text-gray-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <span>Tunnels</span>
+                    </a>
+                    <a href="#" data-section="providers" class="nav-link flex items-center space-x-3 px-4 py-3 text-sm text-gray-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 10-8 0v2a2 2 0 002 2h4a2 2 0 002-2zm3-9a9 9 0 1118 0c0 1.49-.306 2.904-.812 4.187L18 7.5V12M14 12l2 2"></path></svg>
+                        <span>Providers</span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 lg:p-10 p-6 pt-24 lg:pt-10 overflow-y-auto">
+
+        <!-- Top Bar -->
+        <div class="hidden lg:flex justify-between items-center mb-10">
+            <div>
+                <h1 id="page-title" class="text-3xl lg:text-4xl font-extrabold mb-1">Dashboard</h1>
+                <p class="text-sm text-gray-400">Tunnel status overview</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="p-2 text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sections -->
+        <section id="section-dashboard" class="space-y-8">
+            <!-- Mobile Page Title -->
+            <div class="lg:hidden mb-6">
+                <h1 class="text-2xl font-extrabold text-gray-900">Dashboard</h1>
+                <p class="text-xs text-gray-400">System overview</p>
+            </div>
+
+            <!-- Summary Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <!-- Total Nodes -->
+                <div class="card p-6 summary-card-red relative flex items-center">
+                    <div class="w-12 h-12 icon-box-red rounded-xl flex items-center justify-center mr-4 shadow-lg shadow-red-200">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Nodes</p>
+                        <p id="stat-total" class="text-2xl font-extrabold text-gray-900">0</p>
+                        <p class="text-[10px] text-red-500 font-bold mt-1">+0% since last month</p>
+                    </div>
+                </div>
+                <!-- Engines -->
+                <div class="card p-6 summary-card-green relative flex items-center">
+                    <div class="w-12 h-12 icon-box-green rounded-xl flex items-center justify-center mr-4 shadow-lg shadow-green-200">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Engines</p>
+                        <p id="stat-providers" class="text-2xl font-extrabold text-gray-900">0</p>
+                        <p class="text-[10px] text-green-500 font-bold mt-1">+0% since last month</p>
+                    </div>
+                </div>
+                <!-- Healthy -->
+                <div class="card p-6 summary-card-blue relative flex items-center">
+                    <div class="w-12 h-12 icon-box-blue rounded-xl flex items-center justify-center mr-4 shadow-lg shadow-blue-200">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Healthy</p>
+                        <p id="stat-running" class="text-2xl font-extrabold text-gray-900">0</p>
+                        <p class="text-[10px] text-blue-500 font-bold mt-1">+0% since last month</p>
+                    </div>
+                </div>
+                <!-- Critical -->
+                <div class="card p-6 summary-card-yellow relative flex items-center">
+                    <div class="w-12 h-12 icon-box-yellow rounded-xl flex items-center justify-center mr-4 shadow-lg shadow-yellow-200">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Critical</p>
+                        <p id="stat-error" class="text-2xl font-extrabold text-gray-900">0</p>
+                        <p class="text-[10px] text-yellow-600 font-bold mt-1">+0% since last month</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Stats Rows -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div class="card p-8">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <p class="text-3xl font-extrabold text-gray-900" id="stat-active-sessions">0</p>
+                            <p class="text-sm font-medium text-gray-400">Total Active Tunnels</p>
+                        </div>
+                        <div class="p-3 bg-red-50 text-red-500 rounded-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                        </div>
+                    </div>
+                    <div class="h-px bg-gray-100 mb-6"></div>
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs font-bold text-green-500">Live Status</p>
+                        <a href="#" data-section="tunnels" class="nav-link text-xs font-bold text-red-500 hover:underline">View Tunnels</a>
+                    </div>
+                </div>
+                <div class="card p-8">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <p class="text-3xl font-extrabold text-gray-900" id="stat-starting-count">0</p>
+                            <p class="text-sm font-medium text-gray-400">Pending Startups</p>
+                        </div>
+                        <div class="p-3 bg-blue-50 text-blue-500 rounded-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                    </div>
+                    <div class="h-px bg-gray-100 mb-6"></div>
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs font-bold text-gray-400">Stabilizing</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div class="card p-8">
+                    <div class="flex justify-between items-center mb-10">
+                        <h3 class="text-lg font-extrabold">Status Distribution</h3>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="doughnutChart"></canvas>
+                    </div>
+                </div>
+                <div class="card p-8 flex flex-col justify-center items-center text-center">
+                    <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">System Healthy</h3>
+                    <p class="text-sm text-gray-400">All tunnel orchestrators are running within normal parameters.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tunnels Section (Inventory) -->
+        <section id="section-tunnels" class="hidden space-y-8">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h1 class="text-3xl font-extrabold mb-1">Tunnel Inventory</h1>
+                    <p class="text-sm text-gray-400">Manage your active reverse connections.</p>
+                </div>
+                <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="btn-primary px-6 py-3 rounded-xl font-bold text-sm">
+                    Create New Tunnel
+                </button>
+            </div>
+            <div id="tunnel-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- Tunnels inserted by JS -->
+            </div>
+        </section>
+
+        <!-- Providers Section (Reports) -->
+        <section id="section-providers" class="hidden space-y-8">
+             <div class="flex justify-between items-end">
+                <div>
+                    <h1 class="text-3xl font-extrabold mb-1">Engine Reports</h1>
+                    <p class="text-sm text-gray-400">Available tunnel provider engines.</p>
+                </div>
+                <button onclick="document.getElementById('provider-modal').classList.remove('hidden')" class="btn-primary px-6 py-3 rounded-xl font-bold text-sm">
+                    Add Provider
+                </button>
+            </div>
+            <div id="provider-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- Providers inserted by JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modals (Add, Provider, Logs) - Adapted for Light Theme -->
+    <div id="add-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-xl p-10 shadow-2xl relative overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-center mb-8">
+                <h2 id="modal-title" class="text-2xl font-extrabold">Create Tunnel</h2>
+                <button onclick="closeModal('add-modal')" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="tunnel-form" class="space-y-6">
+                <input type="hidden" name="id">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tunnel Name</label>
+                    <input type="text" name="name" placeholder="e.g. My Secure Tunnel" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none transition-all" required>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Provider Engine</label>
+                    <select name="type" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none appearance-none cursor-pointer">
+                        <!-- Options filled by JS -->
+                    </select>
+                </div>
+
+                <div id="dynamic-tunnel-vars" class="grid grid-cols-2 gap-6">
+                    <!-- Dynamic variables filled by JS -->
+                </div>
+
+                <div class="pt-6 flex justify-end space-x-4">
+                    <button type="button" onclick="closeModal('add-modal')" class="text-sm font-bold text-gray-400 hover:text-gray-600">Cancel</button>
+                    <button type="submit" class="btn-primary px-10 py-4 rounded-2xl font-extrabold text-xs uppercase tracking-widest">Deploy Tunnel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Provider Modal -->
+    <div id="provider-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-3xl p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h2 class="text-2xl font-extrabold mb-8">Add Provider Engine</h2>
+            <form id="provider-form" class="space-y-6">
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Engine Name</label>
+                        <input type="text" name="name" placeholder="e.g. My Proxy" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none" required>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Public URL Regex (Optional)</label>
+                        <input type="text" name="regex" placeholder="https?://.*" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Variables</label>
+                        <button type="button" id="add-variable-btn" class="text-[10px] bg-gray-100 px-3 py-1 rounded-full font-bold hover:bg-gray-200 transition-colors uppercase tracking-widest">Add Variable</button>
+                    </div>
+                    <div id="variables-container" class="space-y-4">
+                        <!-- Dynamic Variables -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Check Command</label>
+                        <input type="text" name="check_cmd" placeholder="which cloudflared" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm font-mono focus:border-red-500 outline-none">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Install Command</label>
+                        <input type="text" name="install_cmd" placeholder="curl -L ... | sh" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm font-mono focus:border-red-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Exec Command</label>
+                    <input type="text" name="command" placeholder="binary --port ${Port}" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm font-mono focus:border-red-500 outline-none" required>
+                </div>
+
+                <div class="pt-6 flex justify-end space-x-4">
+                    <button type="button" onclick="closeModal('provider-modal')" class="text-sm font-bold text-gray-400 hover:text-gray-600">Cancel</button>
+                    <button type="submit" class="btn-primary px-10 py-4 rounded-2xl font-extrabold text-xs uppercase tracking-widest">Save Engine</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Logs Modal (Terminal Style) -->
+    <div id="logs-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+        <div class="bg-[#1a1d23] rounded-3xl w-full max-w-4xl h-[70vh] flex flex-col shadow-2xl border border-gray-800 overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span class="ml-4 text-xs font-bold text-gray-500 uppercase tracking-widest">Terminal Output — <span id="log-node-name" class="text-white"></span></span>
+                </div>
+                <button onclick="closeModal('logs-modal')" class="text-gray-500 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="log-container" class="flex-1 p-8 font-mono text-xs overflow-y-auto bg-black text-gray-300 space-y-1">
+                <!-- Logs here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
