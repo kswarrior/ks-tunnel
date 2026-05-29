@@ -55,9 +55,8 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:    "Cloudflare (Quick)",
 			Type:    "Built-in Engine",
-			Command: "cloudflared tunnel --url ${Protocol}://localhost:${Port}",
+			Command: "cloudflared tunnel --url http://localhost:${Port}",
 			Variables: []VariableDef{
-				{Name: "Protocol", ID: "Protocol", Type: "select", DefaultValue: "http", Options: []VariableOption{{Name: "HTTP", Value: "http"}, {Name: "TCP", Value: "tcp"}}},
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 			},
 			Regex: `https://[a-zA-Z0-9-]+\.trycloudflare\.com`,
@@ -100,7 +99,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:    "Serveo",
 			Type:    "Built-in Engine",
-			Command: "ssh -R 80:localhost:${Port} serveo.net",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:localhost:${Port} serveo.net",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 			},
@@ -109,7 +108,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:    "Pinggy.io",
 			Type:    "Built-in Engine",
-			Command: "ssh -p 443 -R0:localhost:${Port}+${Protocol}@ssh.pinggy.io",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 443 -R0:localhost:${Port}+${Protocol}@ssh.pinggy.io",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 				{Name: "Protocol", ID: "Protocol", Type: "select", DefaultValue: "http", Options: []VariableOption{{Name: "HTTP", Value: "http"}, {Name: "TCP", Value: "tcp"}}},

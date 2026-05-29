@@ -162,5 +162,9 @@ func (p *NgrokProvider) Status() TunnelInfo {
 		PublicURL: p.publicURL,
 		Status:    p.status,
 		Error:     errStr,
+		Config: map[string]string{
+			"Port":  p.localAddr,
+			"Token": p.token,
+		},
 	}
 }

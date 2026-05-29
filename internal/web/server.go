@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io/fs"
 	"net/http"
+	"strings"
 
 	"github.com/elite-architect/kstunnel/internal/orchestrator"
 	"github.com/elite-architect/kstunnel/internal/tunnel"
@@ -71,7 +72,7 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var provider tunnel.TunnelProvider
-		if req.Type == "ngrok" {
+		if strings.ToLower(req.Type) == "ngrok" {
 			// ngrok still uses explicit params for now, or we could refactor it too.
 			// For simplicity with the user's new generic request, let's look at config.
 			localAddr := req.Config["Port"]

@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         row.className = 'bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4';
         row.id = rowId;
         row.innerHTML = `
-            <div class="grid grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="space-y-1">
                     <label class="text-[9px] font-bold text-gray-400 uppercase">Label</label>
                     <input type="text" name="var_name" value="${v.name || ''}" placeholder="Protocol" class="w-full bg-white border border-gray-100 rounded-lg p-2 text-xs focus:border-red-500 outline-none">
