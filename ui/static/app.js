@@ -166,6 +166,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const typeSelect = tunnelForm.querySelector('select[name="type"]');
     const dynamicTunnelVars = document.getElementById('dynamic-tunnel-vars');
     const modalTitle = document.getElementById('modal-title');
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-msg');
+    const toastIcon = document.getElementById('toast-icon');
+
+    const showToast = (msg, type = 'success') => {
+        toastMsg.innerText = msg;
+        toastIcon.className = \`w-2 h-2 rounded-full \${type === 'success' ? 'bg-green-500' : 'bg-red-500'}\`;
+        toast.classList.remove('hidden', 'translate-y-20');
+        setTimeout(() => {
+            toast.classList.add('translate-y-20');
+            setTimeout(() => toast.classList.add('hidden'), 300);
+        }, 3000);
+    };
 
     let globalProviders = [];
 
@@ -375,18 +388,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeModal('add-modal');
                 fetchTunnels();
                 updateStats();
+                showToast('Tunnel deployment started');
             } else {
                 const err = await res.text();
-                alert('Error: ' + err);
+                showToast(err, 'error');
             }
         } catch (e) {
-            alert('Failed to connect to server');
+            showToast('Failed to connect to server', 'error');
         }
     });
 
-    window.startTunnel = async (id) => { await fetch('/api/tunnels/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); };
-    window.stopTunnel = async (id) => { await fetch('/api/tunnels/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); };
-    window.restartTunnel = async (id) => { await fetch('/api/tunnels/restart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); };
+    window.startTunnel = async (id) => {
+        await fetch('/api/tunnels/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+        fetchTunnels();
+        updateStats();
+        showToast('Tunnel starting...');
+    };
+    window.stopTunnel = async (id) => {
+        await fetch('/api/tunnels/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+        fetchTunnels();
+        updateStats();
+        showToast('Tunnel stopped');
+    };
+    window.restartTunnel = async (id) => {
+        await fetch('/api/tunnels/restart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+        fetchTunnels();
+        updateStats();
+        showToast('Tunnel restarting...');
+    };
     window.deleteTunnel = async (id) => { if (confirm('Terminate?')) { await fetch('/api/tunnels/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); } };
 
     let logInterval = null;

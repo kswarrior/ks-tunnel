@@ -85,6 +85,7 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 	p.status = StatusStarting
 	p.publicURL = ""
 	p.lastError = ""
+	p.logs = make([]string, 0, 100) // Reset logs on start
 	p.mu.Unlock()
 
 	// Install on demand if commands are provided
@@ -203,6 +204,14 @@ func (p *GenericProvider) addLog(line string) {
 	if p.publicURL == "" && p.re != nil {
 		if found := p.re.FindString(line); found != "" {
 			p.publicURL = found
+		}
+	}
+
+	// Capture common "Ready" or "Online" messages to confirm running status
+	lower := strings.ToLower(line)
+	if strings.Contains(lower, "online") || strings.Contains(lower, "ready") || strings.Contains(lower, "tunnel established") {
+		if p.status == StatusStarting {
+			p.status = StatusRunning
 		}
 	}
 }

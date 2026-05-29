@@ -2,8 +2,11 @@ package orchestrator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/elite-architect/kstunnel/internal/tunnel"
@@ -38,6 +41,7 @@ type Orchestrator struct {
 	tunnels   map[string]tunnel.TunnelProvider
 	providers map[string]ProviderDef
 	mu        sync.RWMutex
+	filePath  string
 }
 
 func NewOrchestrator() *Orchestrator {
@@ -158,6 +162,13 @@ func (o *Orchestrator) seedDefaultProviders() {
 			CheckCmd:   "telebit version",
 			InstallCmd: "curl -sSL https://get.telebit.io | bash",
 		},
+		{
+			Name:      "Localhost.run (Legacy)",
+			Type:      "Built-in Engine",
+			Command:   "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:localhost:${Port} localhost.run",
+			Variables: []VariableDef{{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"}},
+			Regex:     `https?://[a-zA-Z0-9-]+\.localhost\.run`,
+		},
 	}
 
 	for _, p := range defaults {
@@ -168,11 +179,13 @@ func (o *Orchestrator) seedDefaultProviders() {
 func (o *Orchestrator) AddTunnel(provider tunnel.TunnelProvider) error {
 	info := provider.Status()
 	o.mu.Lock()
-	defer o.mu.Unlock()
 	if _, exists := o.tunnels[info.ID]; exists {
+		o.mu.Unlock()
 		return fmt.Errorf("tunnel with ID %s already exists", info.ID)
 	}
 	o.tunnels[info.ID] = provider
+	o.mu.Unlock()
+	o.Save()
 	return nil
 }
 
@@ -191,6 +204,7 @@ func (o *Orchestrator) UpdateTunnel(id string, provider tunnel.TunnelProvider) e
 
 	o.tunnels[id] = provider
 	o.mu.Unlock()
+	o.Save()
 	return nil
 }
 
@@ -231,6 +245,7 @@ func (o *Orchestrator) DeleteTunnel(id string) error {
 	}
 	delete(o.tunnels, id)
 	o.mu.Unlock()
+	o.Save()
 	return nil
 }
 
@@ -303,7 +318,6 @@ func (o *Orchestrator) GetStats() Stats {
 
 func (o *Orchestrator) AddProvider(def ProviderDef) {
 	o.mu.Lock()
-	defer o.mu.Unlock()
 
 	// If no variables defined explicitly, try to auto-extract from command
 	if len(def.Variables) == 0 {
@@ -322,6 +336,8 @@ func (o *Orchestrator) AddProvider(def ProviderDef) {
 	}
 
 	o.providers[def.Name] = def
+	o.mu.Unlock()
+	o.Save()
 }
 
 func (o *Orchestrator) SeedNgrok() {
@@ -357,8 +373,9 @@ func (o *Orchestrator) ListProviders() []ProviderDef {
 
 func (o *Orchestrator) DeleteProvider(name string) {
 	o.mu.Lock()
-	defer o.mu.Unlock()
 	delete(o.providers, name)
+	o.mu.Unlock()
+	o.Save()
 }
 
 func (o *Orchestrator) StopAll() {
@@ -367,4 +384,78 @@ func (o *Orchestrator) StopAll() {
 	for _, p := range o.tunnels {
 		p.Stop()
 	}
+}
+
+type ConfigState struct {
+	Providers []ProviderDef       `json:"providers"`
+	Tunnels   []tunnel.TunnelInfo `json:"tunnels"`
+}
+
+func (o *Orchestrator) SetPersistence(path string) {
+	o.mu.Lock()
+	o.filePath = path
+	o.mu.Unlock()
+}
+
+func (o *Orchestrator) Save() error {
+	o.mu.RLock()
+	if o.filePath == "" {
+		o.mu.RUnlock()
+		return nil
+	}
+
+	var state ConfigState
+	for _, p := range o.providers {
+		if p.Type != "Built-in Engine" {
+			state.Providers = append(state.Providers, p)
+		}
+	}
+	for _, t := range o.tunnels {
+		state.Tunnels = append(state.Tunnels, t.Status())
+	}
+	o.mu.RUnlock()
+
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(o.filePath, data, 0644)
+}
+
+func (o *Orchestrator) Load(path string) error {
+	o.SetPersistence(path)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	var state ConfigState
+	if err := json.Unmarshal(data, &state); err != nil {
+		return err
+	}
+
+	for _, p := range state.Providers {
+		o.AddProvider(p)
+	}
+
+	for _, t := range state.Tunnels {
+		var provider tunnel.TunnelProvider
+		if strings.ToLower(t.Type) == "ngrok" {
+			provider = tunnel.NewNgrokProvider(t.ID, t.Name, t.Config["Port"], t.Config["Token"], t.Config["Domain"])
+		} else {
+			pDef, ok := o.GetProvider(t.Type)
+			if ok {
+				provider = tunnel.NewGenericProvider(t.ID, t.Name, t.Type, pDef.Command, pDef.Regex, pDef.CheckCmd, pDef.InstallCmd, t.Config)
+			}
+		}
+		if provider != nil {
+			o.AddTunnel(provider)
+			// Don't auto-start on load to prevent chaos, or let user decide?
+			// Let's keep them in stopped state for now.
+		}
+	}
+	return nil
 }

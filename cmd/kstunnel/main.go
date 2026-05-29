@@ -16,9 +16,14 @@ import (
 
 func main() {
 	port := flag.Int("core_port", 8080, "Port for the Web UI and API")
+	configPath := flag.String("config", "kstunnel.json", "Path to the configuration file")
 	flag.Parse()
 
 	orch := orchestrator.NewOrchestrator()
+	if err := orch.Load(*configPath); err != nil {
+		fmt.Printf("Warning: failed to load config: %v\n", err)
+	}
+
 	server := web.NewServer(orch, kstunnel.StaticFiles)
 
 	addr := fmt.Sprintf(":%d", *port)
