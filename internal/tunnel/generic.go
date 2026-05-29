@@ -15,10 +15,12 @@ type GenericProvider struct {
 	id        string
 	name      string
 	typeName  string
-	cmdStr    string
-	variables map[string]string
-	regex     string
-	re        *regexp.Regexp
+	cmdStr     string
+	checkCmd   string
+	installCmd string
+	variables  map[string]string
+	regex      string
+	re         *regexp.Regexp
 
 	status    Status
 	publicURL string
@@ -28,7 +30,7 @@ type GenericProvider struct {
 	mu        sync.RWMutex
 }
 
-func NewGenericProvider(id, name, typeName, cmdStr, regex string, variables map[string]string) *GenericProvider {
+func NewGenericProvider(id, name, typeName, cmdStr, regex, checkCmd, installCmd string, variables map[string]string) *GenericProvider {
 	var re *regexp.Regexp
 	reStr := `https?://[a-zA-Z0-9.-]+\.(ngrok-free\.app|trycloudflare\.com|loca\.lt)[^\s]*`
 	if regex != "" {
@@ -37,16 +39,25 @@ func NewGenericProvider(id, name, typeName, cmdStr, regex string, variables map[
 	re, _ = regexp.Compile(reStr)
 
 	return &GenericProvider{
-		id:        id,
-		name:      name,
-		typeName:  typeName,
-		cmdStr:    cmdStr,
-		regex:     regex,
-		re:        re,
-		variables: variables,
-		status:    StatusStopped,
-		logs:      make([]string, 0, 100),
+		id:         id,
+		name:       name,
+		typeName:   typeName,
+		cmdStr:     cmdStr,
+		checkCmd:   checkCmd,
+		installCmd: installCmd,
+		regex:      regex,
+		re:         re,
+		variables:  variables,
+		status:     StatusStopped,
+		logs:       make([]string, 0, 100),
 	}
+}
+
+func (p *GenericProvider) interpolate(cmd string) string {
+	for k, v := range p.variables {
+		cmd = strings.ReplaceAll(cmd, "${"+k+"}", v)
+	}
+	return cmd
 }
 
 func (p *GenericProvider) Start(ctx context.Context) error {
@@ -60,11 +71,28 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 	p.lastError = ""
 	p.mu.Unlock()
 
-	// Interpolate variables
-	finalCmd := p.cmdStr
-	for k, v := range p.variables {
-		finalCmd = strings.ReplaceAll(finalCmd, "${"+k+"}", v)
+	// Install on demand if commands are provided
+	if p.checkCmd != "" && p.installCmd != "" {
+		checkCmd := p.interpolate(p.checkCmd)
+		p.addLog("Checking if software is installed: " + checkCmd)
+		checkParts := strings.Fields(checkCmd)
+		if err := exec.Command(checkParts[0], checkParts[1:]...).Run(); err != nil {
+			p.addLog("Software not found. Installing...")
+			installCmd := p.interpolate(p.installCmd)
+			installParts := strings.Fields(installCmd)
+			if out, err := exec.Command(installParts[0], installParts[1:]...).CombinedOutput(); err != nil {
+				p.addLog("Installation failed: " + string(out))
+				p.setError("installation failed: " + err.Error())
+				return err
+			}
+			p.addLog("Installation successful")
+		} else {
+			p.addLog("Software check passed")
+		}
 	}
+
+	// Interpolate variables
+	finalCmd := p.interpolate(p.cmdStr)
 
 	p.addLog("Executing: " + finalCmd)
 

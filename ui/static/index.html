@@ -273,9 +273,9 @@
 
     <!-- Modals (Add, Provider, Logs) - Adapted for Light Theme -->
     <div id="add-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl w-full max-w-xl p-10 shadow-2xl overflow-hidden relative">
+        <div class="bg-white rounded-3xl w-full max-w-xl p-10 shadow-2xl relative overflow-y-auto max-h-[90vh]">
             <div class="flex justify-between items-center mb-8">
-                <h2 id="modal-title" class="text-2xl font-extrabold">Create Node</h2>
+                <h2 id="modal-title" class="text-2xl font-extrabold">Create Tunnel</h2>
                 <button onclick="closeModal('add-modal')" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
@@ -283,35 +283,24 @@
             <form id="tunnel-form" class="space-y-6">
                 <input type="hidden" name="id">
                 <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Node Identity</label>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tunnel Name</label>
                     <input type="text" name="name" placeholder="e.g. My Secure Tunnel" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none transition-all" required>
                 </div>
-                <div class="grid grid-cols-2 gap-6">
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Engine</label>
-                        <select name="type" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none appearance-none cursor-pointer">
-                            <option value="cloudflare">Cloudflare Quick</option>
-                            <option value="ngrok">Ngrok SDK</option>
-                        </select>
-                    </div>
-                    <div id="port-field" class="space-y-2">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Internal Port</label>
-                        <div class="flex">
-                            <select name="protocol" class="bg-gray-100 border-r border-gray-200 rounded-l-xl px-3 text-xs font-bold outline-none">
-                                <option value="http">HTTP</option>
-                                <option value="tcp">TCP</option>
-                            </select>
-                            <input type="text" name="local_addr" placeholder="8080" class="flex-1 bg-gray-50 border border-gray-100 border-l-0 rounded-r-xl p-4 text-sm focus:border-red-500 outline-none transition-all">
-                        </div>
-                    </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Provider Engine</label>
+                    <select name="type" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none appearance-none cursor-pointer">
+                        <!-- Options filled by JS -->
+                    </select>
                 </div>
-                <div id="token-field" class="hidden space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Auth Token</label>
-                    <input type="password" name="token" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none">
+
+                <div id="dynamic-tunnel-vars" class="grid grid-cols-2 gap-6">
+                    <!-- Dynamic variables filled by JS -->
                 </div>
+
                 <div class="pt-6 flex justify-end space-x-4">
                     <button type="button" onclick="closeModal('add-modal')" class="text-sm font-bold text-gray-400 hover:text-gray-600">Cancel</button>
-                    <button type="submit" class="btn-primary px-10 py-4 rounded-2xl font-extrabold text-xs uppercase tracking-widest">Deploy Node</button>
+                    <button type="submit" class="btn-primary px-10 py-4 rounded-2xl font-extrabold text-xs uppercase tracking-widest">Deploy Tunnel</button>
                 </div>
             </form>
         </div>
@@ -319,17 +308,46 @@
 
     <!-- Provider Modal -->
     <div id="provider-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl w-full max-w-lg p-10 shadow-2xl">
+        <div class="bg-white rounded-3xl w-full max-w-3xl p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
             <h2 class="text-2xl font-extrabold mb-8">Add Provider Engine</h2>
             <form id="provider-form" class="space-y-6">
-                <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Engine Name</label>
-                    <input type="text" name="name" placeholder="e.g. My Proxy" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none" required>
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Engine Name</label>
+                        <input type="text" name="name" placeholder="e.g. My Proxy" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none" required>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Public URL Regex (Optional)</label>
+                        <input type="text" name="regex" placeholder="https?://.*" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none">
+                    </div>
                 </div>
+
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Variables</label>
+                        <button type="button" id="add-variable-btn" class="text-[10px] bg-gray-100 px-3 py-1 rounded-full font-bold hover:bg-gray-200 transition-colors uppercase tracking-widest">Add Variable</button>
+                    </div>
+                    <div id="variables-container" class="space-y-4">
+                        <!-- Dynamic Variables -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Check Command</label>
+                        <input type="text" name="check_cmd" placeholder="which cloudflared" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm font-mono focus:border-red-500 outline-none">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Install Command</label>
+                        <input type="text" name="install_cmd" placeholder="curl -L ... | sh" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm font-mono focus:border-red-500 outline-none">
+                    </div>
+                </div>
+
                 <div class="space-y-2">
                     <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Exec Command</label>
                     <input type="text" name="command" placeholder="binary --port ${Port}" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm font-mono focus:border-red-500 outline-none" required>
                 </div>
+
                 <div class="pt-6 flex justify-end space-x-4">
                     <button type="button" onclick="closeModal('provider-modal')" class="text-sm font-bold text-gray-400 hover:text-gray-600">Cancel</button>
                     <button type="submit" class="btn-primary px-10 py-4 rounded-2xl font-extrabold text-xs uppercase tracking-widest">Save Engine</button>

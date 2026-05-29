@@ -11,12 +11,27 @@ import (
 
 var varRegex = regexp.MustCompile(`\$\{([a-zA-Z0-9_]+)\}`)
 
+type VariableOption struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type VariableDef struct {
+	Name         string           `json:"name"`
+	Type         string           `json:"type"` // "input" or "select"
+	ID           string           `json:"id"`
+	DefaultValue string           `json:"default_value"`
+	Options      []VariableOption `json:"options,omitempty"`
+}
+
 type ProviderDef struct {
-	Name      string   `json:"name"`
-	Type      string   `json:"type"`
-	Command   string   `json:"command"`
-	Variables []string `json:"variables"`
-	Regex     string   `json:"regex"`
+	Name         string        `json:"name"`
+	Type         string        `json:"type"`
+	Command      string        `json:"command"`
+	Variables    []VariableDef `json:"variables"`
+	Regex        string        `json:"regex"`
+	CheckCmd     string        `json:"check_cmd"`
+	InstallCmd   string        `json:"install_cmd"`
 }
 
 type Orchestrator struct {
@@ -35,47 +50,71 @@ func NewOrchestrator() *Orchestrator {
 }
 
 func (o *Orchestrator) seedDefaultProviders() {
+	o.SeedNgrok()
 	defaults := []ProviderDef{
 		{
 			Name:    "Cloudflare (Quick)",
 			Type:    "Built-in Engine",
 			Command: "cloudflared tunnel --url ${Protocol}://localhost:${Port}",
-			Regex:   `https://[a-zA-Z0-9-]+\.trycloudflare\.com`,
+			Variables: []VariableDef{
+				{Name: "Protocol", ID: "Protocol", Type: "select", DefaultValue: "http", Options: []VariableOption{{Name: "HTTP", Value: "http"}, {Name: "TCP", Value: "tcp"}}},
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `https://[a-zA-Z0-9-]+\.trycloudflare\.com`,
 		},
 		{
 			Name:    "Cloudflare (Managed)",
 			Type:    "Built-in Engine",
 			Command: "cloudflared tunnel run --token ${Token}",
+			Variables: []VariableDef{
+				{Name: "Token", ID: "Token", Type: "input"},
+			},
 		},
 		{
 			Name:    "Localtunnel",
 			Type:    "Built-in Engine",
 			Command: "lt --port ${Port}",
-			Regex:   `https?://[a-zA-Z0-9.-]+\.(loca\.lt|localtunnel\.me)`,
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.(loca\.lt|localtunnel\.me)`,
 		},
 		{
 			Name:    "Bore",
 			Type:    "Built-in Engine",
 			Command: "bore local ${Port} --to bore.pub",
-			Regex:   `bore.pub:[0-9]+`,
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `bore.pub:[0-9]+`,
 		},
 		{
 			Name:    "Loophole",
 			Type:    "Built-in Engine",
 			Command: "loophole http ${Port}",
-			Regex:   `https?://[a-zA-Z0-9.-]+\.loophole\.site`,
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.loophole\.site`,
 		},
 		{
 			Name:    "Serveo",
 			Type:    "Built-in Engine",
 			Command: "ssh -R 80:localhost:${Port} serveo.net",
-			Regex:   `https?://[a-zA-Z0-9.-]+\.serveo\.net`,
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.serveo\.net`,
 		},
 		{
 			Name:    "Pinggy.io",
 			Type:    "Built-in Engine",
 			Command: "ssh -p 443 -R0:localhost:${Port}+${Protocol}@ssh.pinggy.io",
-			Regex:   `https?://[a-zA-Z0-9.-]+\.pinggy\.link`,
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Protocol", ID: "Protocol", Type: "select", DefaultValue: "http", Options: []VariableOption{{Name: "HTTP", Value: "http"}, {Name: "TCP", Value: "tcp"}}},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.pinggy\.link`,
 		},
 		{
 			Name:    "Playit.gg",
@@ -230,18 +269,36 @@ func (o *Orchestrator) AddProvider(def ProviderDef) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 
-	// Auto-extract variables from command
-	matches := varRegex.FindAllStringSubmatch(def.Command, -1)
-	vars := make(map[string]bool)
-	for _, m := range matches {
-		vars[m[1]] = true
-	}
-	def.Variables = nil
-	for v := range vars {
-		def.Variables = append(def.Variables, v)
+	// If no variables defined explicitly, try to auto-extract from command
+	if len(def.Variables) == 0 {
+		matches := varRegex.FindAllStringSubmatch(def.Command, -1)
+		vars := make(map[string]bool)
+		for _, m := range matches {
+			vars[m[1]] = true
+		}
+		for v := range vars {
+			def.Variables = append(def.Variables, VariableDef{
+				Name: v,
+				ID:   v,
+				Type: "input",
+			})
+		}
 	}
 
 	o.providers[def.Name] = def
+}
+
+func (o *Orchestrator) SeedNgrok() {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.providers["Ngrok"] = ProviderDef{
+		Name: "Ngrok",
+		Type: "Built-in Engine",
+		Variables: []VariableDef{
+			{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			{Name: "Token", ID: "Token", Type: "input"},
+		},
+	}
 }
 
 func (o *Orchestrator) GetProvider(name string) (ProviderDef, bool) {

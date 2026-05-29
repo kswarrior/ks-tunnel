@@ -72,7 +72,17 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 
 		var provider tunnel.TunnelProvider
 		if req.Type == "ngrok" {
-			provider = tunnel.NewNgrokProvider(id, req.Name, req.LocalAddr, req.Token)
+			// ngrok still uses explicit params for now, or we could refactor it too.
+			// For simplicity with the user's new generic request, let's look at config.
+			localAddr := req.Config["Port"]
+			if localAddr == "" {
+				localAddr = req.LocalAddr
+			}
+			token := req.Config["Token"]
+			if token == "" {
+				token = req.Token
+			}
+			provider = tunnel.NewNgrokProvider(id, req.Name, localAddr, token)
 		} else {
 			// Check if it's a custom provider
 			pDef, ok := s.orch.GetProvider(req.Type)
@@ -80,7 +90,7 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "invalid provider type", http.StatusBadRequest)
 				return
 			}
-			provider = tunnel.NewGenericProvider(id, req.Name, req.Type, pDef.Command, pDef.Regex, req.Config)
+			provider = tunnel.NewGenericProvider(id, req.Name, req.Type, pDef.Command, pDef.Regex, pDef.CheckCmd, pDef.InstallCmd, req.Config)
 		}
 
 		if isUpdate {
