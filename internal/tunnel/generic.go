@@ -133,10 +133,19 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 	p.status = StatusRunning
 	p.mu.Unlock()
 
-	go p.scanLogs(stdout)
-	go p.scanLogs(stderr)
+	if stdout != nil {
+		go p.scanLogs(stdout)
+	}
+	if stderr != nil {
+		go p.scanLogs(stderr)
+	}
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				p.addLog("Recovered from background process panic")
+			}
+		}()
 		err := cmd.Wait()
 		p.mu.Lock()
 		p.status = StatusStopped
@@ -216,6 +225,11 @@ func (p *GenericProvider) addLog(line string) {
 }
 
 func (p *GenericProvider) scanLogs(r io.ReadCloser) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			p.addLog("Recovered from log scanning panic")
+		}
+	}()
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		p.addLog(scanner.Text())

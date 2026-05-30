@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const createVarRow = (v = {}) => {
         const rowId = 'var-' + Math.random().toString(36).substr(2, 9);
         const row = document.createElement('div');
-        row.className = 'bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4';
+        row.className = 'bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-6';
         row.id = rowId;
         row.innerHTML = `
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">

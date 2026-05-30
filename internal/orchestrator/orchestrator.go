@@ -235,21 +235,20 @@ func (o *Orchestrator) seedDefaultProviders() {
 func (o *Orchestrator) AddTunnel(provider tunnel.TunnelProvider) error {
 	info := provider.Status()
 	o.mu.Lock()
+	defer o.mu.Unlock()
 	if _, exists := o.tunnels[info.ID]; exists {
-		o.mu.Unlock()
 		return fmt.Errorf("tunnel with ID %s already exists", info.ID)
 	}
 	o.tunnels[info.ID] = provider
-	o.mu.Unlock()
-	o.Save()
+	o.saveUnlocked()
 	return nil
 }
 
 func (o *Orchestrator) UpdateTunnel(id string, provider tunnel.TunnelProvider) error {
 	o.mu.Lock()
+	defer o.mu.Unlock()
 	old, exists := o.tunnels[id]
 	if !exists {
-		o.mu.Unlock()
 		return fmt.Errorf("tunnel with ID %s not found", id)
 	}
 
@@ -259,8 +258,7 @@ func (o *Orchestrator) UpdateTunnel(id string, provider tunnel.TunnelProvider) e
 	}
 
 	o.tunnels[id] = provider
-	o.mu.Unlock()
-	o.Save()
+	o.saveUnlocked()
 	return nil
 }
 
@@ -290,9 +288,9 @@ func (o *Orchestrator) StopTunnel(id string) error {
 
 func (o *Orchestrator) DeleteTunnel(id string) error {
 	o.mu.Lock()
+	defer o.mu.Unlock()
 	provider, exists := o.tunnels[id]
 	if !exists {
-		o.mu.Unlock()
 		return fmt.Errorf("tunnel with ID %s not found", id)
 	}
 
@@ -300,8 +298,7 @@ func (o *Orchestrator) DeleteTunnel(id string) error {
 		provider.Stop()
 	}
 	delete(o.tunnels, id)
-	o.mu.Unlock()
-	o.Save()
+	o.saveUnlocked()
 	return nil
 }
 
@@ -374,6 +371,7 @@ func (o *Orchestrator) GetStats() Stats {
 
 func (o *Orchestrator) AddProvider(def ProviderDef) {
 	o.mu.Lock()
+	defer o.mu.Unlock()
 
 	// If no variables defined explicitly, try to auto-extract from command
 	if len(def.Variables) == 0 {
@@ -392,8 +390,7 @@ func (o *Orchestrator) AddProvider(def ProviderDef) {
 	}
 
 	o.providers[def.Name] = def
-	o.mu.Unlock()
-	o.Save()
+	o.saveUnlocked()
 }
 
 func (o *Orchestrator) SeedNgrok() {
@@ -429,9 +426,9 @@ func (o *Orchestrator) ListProviders() []ProviderDef {
 
 func (o *Orchestrator) DeleteProvider(name string) {
 	o.mu.Lock()
+	defer o.mu.Unlock()
 	delete(o.providers, name)
-	o.mu.Unlock()
-	o.Save()
+	o.saveUnlocked()
 }
 
 func (o *Orchestrator) StopAll() {
@@ -455,8 +452,12 @@ func (o *Orchestrator) SetPersistence(path string) {
 
 func (o *Orchestrator) Save() error {
 	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.saveUnlocked()
+}
+
+func (o *Orchestrator) saveUnlocked() error {
 	if o.filePath == "" {
-		o.mu.RUnlock()
 		return nil
 	}
 
@@ -469,7 +470,6 @@ func (o *Orchestrator) Save() error {
 	for _, t := range o.tunnels {
 		state.Tunnels = append(state.Tunnels, t.Status())
 	}
-	o.mu.RUnlock()
 
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
