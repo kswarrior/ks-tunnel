@@ -21,7 +21,7 @@ func NewServer(orch *orchestrator.Orchestrator, static embed.FS) *Server {
 	return &Server{orch: orch, static: static}
 }
 
-func (s *Server) Router() *http.ServeMux {
+func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 
 	staticFS, _ := fs.Sub(s.static, "ui/static")
@@ -35,7 +35,16 @@ func (s *Server) Router() *http.ServeMux {
 	mux.HandleFunc("/api/tunnels/logs", s.handleLogs)
 	mux.HandleFunc("/api/providers", s.handleProviders)
 	mux.HandleFunc("/api/stats", s.handleStats)
-	return mux
+
+	// Wrap with recovery middleware to prevent "Bad Gateway" on crashes
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+		}()
+		mux.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {

@@ -30,7 +30,7 @@ func main() {
 	fmt.Printf("KS Tunnel starting on http://localhost%s\n", addr)
 
 	go func() {
-		if err := http.ListenAndServe(addr, server.Router()); err != nil {
+		if err := http.ListenAndServe(addr, server.Handler()); err != nil {
 			log.Fatalf("failed to start server: %v", err)
 		}
 	}()

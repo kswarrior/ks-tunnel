@@ -196,6 +196,35 @@ func (o *Orchestrator) seedDefaultProviders() {
 				{Name: "Tunnel Name/ID", ID: "Name", Type: "input"},
 			},
 		},
+		{
+			Name:    "SocketXP",
+			Type:    "Built-in Engine",
+			Command: "socketxp connect http://localhost:${Port} --authtoken ${Token}",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Token", ID: "Token", Type: "input"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.socketxp\.com`,
+		},
+		{
+			Name:    "Tunnelin",
+			Type:    "Built-in Engine",
+			Command: "tunnelin --port ${Port} --token ${Token}",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Token", ID: "Token", Type: "input"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.tunnelin\.com`,
+		},
+		{
+			Name:    "Pinggy (Quick)",
+			Type:    "Built-in Engine",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 443 -R0:localhost:${Port} a.pinggy.io",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.pinggy\.link`,
+		},
 	}
 
 	for _, p := range defaults {

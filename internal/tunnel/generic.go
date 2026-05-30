@@ -58,13 +58,15 @@ func (p *GenericProvider) interpolate(cmd string) string {
 		placeholder := "${" + k + "}"
 		if v == "" {
 			// If value is empty, try to remove the preceding flag
-			// Matches patterns like "--subdomain ${Subdomain}" or "-s ${Subdomain}"
-		// Use literal string matching or escape the placeholder correctly for regex
-		safePlaceholder := regexp.QuoteMeta(placeholder)
-		re := regexp.MustCompile(`\s--?[a-zA-Z0-9-]+\s` + safePlaceholder)
+			// Handle cases where placeholder is standalone: --flag ${Var}
+			// or part of a URL: --url http://localhost:${Port}
+			safePlaceholder := regexp.QuoteMeta(placeholder)
+			// Match a flag followed by space and then either the placeholder OR something containing the placeholder (like a URL)
+			re := regexp.MustCompile(`\s--?[a-zA-Z0-9-]+\s[^\s]*` + safePlaceholder + `[^\s]*`)
 			if re.MatchString(cmd) {
 				cmd = re.ReplaceAllString(cmd, "")
 			} else {
+				// Final fallback if no flag found
 				cmd = strings.ReplaceAll(cmd, placeholder, "")
 			}
 		} else {
@@ -92,23 +94,17 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 	if p.checkCmd != "" && p.installCmd != "" {
 		checkCmd := p.interpolate(p.checkCmd)
 		p.addLog("Checking if software is installed: " + checkCmd)
-		checkParts := strings.Fields(checkCmd)
-		if len(checkParts) > 0 {
-			if err := exec.Command(checkParts[0], checkParts[1:]...).Run(); err != nil {
-				p.addLog("Software not found. Installing...")
-				installCmd := p.interpolate(p.installCmd)
-				installParts := strings.Fields(installCmd)
-				if len(installParts) > 0 {
-					if out, err := exec.Command(installParts[0], installParts[1:]...).CombinedOutput(); err != nil {
-						p.addLog("Installation failed: " + string(out))
-						p.setError("installation failed: " + err.Error())
-						return err
-					}
-					p.addLog("Installation successful")
-				}
-			} else {
-				p.addLog("Software check passed")
+		if err := exec.Command("sh", "-c", checkCmd).Run(); err != nil {
+			p.addLog("Software not found. Installing...")
+			installCmd := p.interpolate(p.installCmd)
+			if out, err := exec.Command("sh", "-c", installCmd).CombinedOutput(); err != nil {
+				p.addLog("Installation failed: " + string(out))
+				p.setError("installation failed: " + err.Error())
+				return err
 			}
+			p.addLog("Installation successful")
+		} else {
+			p.addLog("Software check passed")
 		}
 	}
 
@@ -117,13 +113,12 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 
 	p.addLog("Executing: " + finalCmd)
 
-	parts := strings.Fields(finalCmd)
-	if len(parts) == 0 {
+	if finalCmd == "" {
 		p.setError("empty command")
 		return fmt.Errorf("empty command")
 	}
 
-	cmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
+	cmd := exec.CommandContext(ctx, "sh", "-c", finalCmd)
 	p.cmd = cmd
 
 	stdout, _ := cmd.StdoutPipe()
