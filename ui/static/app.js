@@ -1,42 +1,54 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Navigation Logic
-    const navLinks = document.querySelectorAll('.nav-link');
+// Global state and functions
+window.sidebar = null;
+window.backdrop = null;
+
+window.toggleMobileMenu = () => {
+    if (!window.sidebar || !window.backdrop) {
+        window.sidebar = document.getElementById('sidebar');
+        window.backdrop = document.getElementById('sidebar-backdrop');
+    }
+    if (!window.sidebar || !window.backdrop) return;
+    window.sidebar.classList.toggle('-translate-x-full');
+    window.backdrop.classList.toggle('hidden');
+};
+
+window.showSection = (sectionId) => {
     const sections = ['dashboard', 'tunnels', 'providers'];
-    const sidebar = document.getElementById('sidebar');
-    const mobileToggle = document.getElementById('mobile-toggle');
-    const backdrop = document.getElementById('sidebar-backdrop');
+    const navLinks = document.querySelectorAll('.nav-link');
+    sections.forEach(s => {
+        const el = document.getElementById(`section-${s}`);
+        if (el) el.classList.add('hidden');
+    });
+    const target = document.getElementById(`section-${sectionId}`);
+    if (target) target.classList.remove('hidden');
 
-    const toggleMobileMenu = () => {
-        sidebar.classList.toggle('-translate-x-full');
-        backdrop.classList.toggle('hidden');
-    };
-
-    const showSection = (sectionId) => {
-        sections.forEach(s => {
-            const el = document.getElementById(`section-${s}`);
-            if (el) el.classList.add('hidden');
-        });
-        const target = document.getElementById(`section-${sectionId}`);
-        if (target) target.classList.remove('hidden');
-
-        navLinks.forEach(link => {
-            if (link.dataset.section === sectionId) {
-                link.classList.add('active');
-                link.classList.remove('text-gray-500');
-            } else {
-                link.classList.remove('active');
-                link.classList.add('text-gray-500');
-            }
-        });
-
-        const titles = { dashboard: 'Dashboard', tunnels: 'Tunnels', providers: 'Providers' };
-        document.getElementById('page-title').innerText = titles[sectionId] || 'Dashboard';
-
-        if (!sidebar.classList.contains('-translate-x-full')) {
-            sidebar.classList.add('-translate-x-full');
-            backdrop.classList.add('hidden');
+    navLinks.forEach(link => {
+        if (link.dataset.section === sectionId) {
+            link.classList.add('active');
+            link.classList.remove('text-gray-500');
+        } else {
+            link.classList.remove('active');
+            link.classList.add('text-gray-500');
         }
-    };
+    });
+
+    const titles = { dashboard: 'Dashboard', tunnels: 'Tunnels', providers: 'Providers' };
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) titleEl.innerText = titles[sectionId] || 'Dashboard';
+
+    if (!window.sidebar) window.sidebar = document.getElementById('sidebar');
+    if (!window.backdrop) window.backdrop = document.getElementById('sidebar-backdrop');
+
+    if (window.sidebar && !window.sidebar.classList.contains('-translate-x-full')) {
+        window.sidebar.classList.add('-translate-x-full');
+        if (window.backdrop) window.backdrop.classList.add('hidden');
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.sidebar = document.getElementById('sidebar');
+    window.backdrop = document.getElementById('sidebar-backdrop');
+    const navLinks = document.querySelectorAll('.nav-link');
 
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -47,14 +59,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    mobileToggle.addEventListener('click', toggleMobileMenu);
-    backdrop.addEventListener('click', toggleMobileMenu);
-
-    document.querySelector('main').addEventListener('click', () => {
-        if (window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
-            toggleMobileMenu();
-        }
-    });
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+        mainEl.addEventListener('click', () => {
+            if (window.innerWidth < 1024 && window.sidebar && !window.sidebar.classList.contains('-translate-x-full')) {
+                toggleMobileMenu();
+            }
+        });
+    }
 
     // Charting Logic
     let doughnutChart = null;
@@ -153,26 +165,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (v.options) v.options.forEach(opt => createOptRow(opt));
 
-        varsContainer.appendChild(row);
+        if (varsContainer) varsContainer.appendChild(row);
     };
 
-    addVarBtn.addEventListener('click', () => createVarRow());
+    if (addVarBtn) addVarBtn.addEventListener('click', () => createVarRow());
 
     // API Handling
     const tunnelGrid = document.getElementById('tunnel-grid');
     const providerGrid = document.getElementById('provider-grid');
     const tunnelForm = document.getElementById('tunnel-form');
     const providerForm = document.getElementById('provider-form');
-    const typeSelect = tunnelForm.querySelector('select[name="type"]');
+    const typeSelect = tunnelForm?.querySelector('select[name="type"]');
     const dynamicTunnelVars = document.getElementById('dynamic-tunnel-vars');
-    const modalTitle = document.getElementById('modal-title');
     const toast = document.getElementById('toast');
     const toastMsg = document.getElementById('toast-msg');
     const toastIcon = document.getElementById('toast-icon');
 
     const showToast = (msg, type = 'success') => {
+        if (!toast || !toastMsg || !toastIcon) return;
         toastMsg.innerText = msg;
-        toastIcon.className = \`w-2 h-2 rounded-full \${type === 'success' ? 'bg-green-500' : 'bg-red-500'}\`;
+        toastIcon.className = `w-2 h-2 rounded-full ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
         toast.classList.remove('hidden', 'translate-y-20');
         setTimeout(() => {
             toast.classList.add('translate-y-20');
@@ -183,6 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let globalProviders = [];
 
     const renderTunnelForm = (providerName) => {
+        if (!dynamicTunnelVars) return;
         dynamicTunnelVars.innerHTML = '';
         const provider = globalProviders.find(p => p.name === providerName);
         if (!provider || !provider.variables) return;
@@ -209,13 +222,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    typeSelect.addEventListener('change', () => renderTunnelForm(typeSelect.value));
+    if (typeSelect) typeSelect.addEventListener('change', () => renderTunnelForm(typeSelect.value));
 
     window.closeModal = (id) => {
-        document.getElementById(id).classList.add('hidden');
-        if (id === 'provider-modal') {
+        const modal = document.getElementById(id);
+        if (modal) modal.classList.add('hidden');
+        if (id === 'provider-modal' && providerForm) {
             providerForm.reset();
-            varsContainer.innerHTML = '';
+            if (varsContainer) varsContainer.innerHTML = '';
         }
     };
 
@@ -223,13 +237,22 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/stats');
             const stats = await response.json();
-            document.getElementById('stat-total').innerText = stats.total;
-            document.getElementById('stat-running').innerText = stats.running;
-            document.getElementById('stat-starting').innerText = stats.starting;
-            document.getElementById('stat-error').innerText = stats.error;
-            document.getElementById('stat-providers').innerText = stats.providers;
-            document.getElementById('stat-active-sessions').innerText = stats.running;
-            document.getElementById('stat-starting-count').innerText = stats.starting;
+            const elTotal = document.getElementById('stat-total');
+            const elRunning = document.getElementById('stat-running');
+            const elStarting = document.getElementById('stat-starting');
+            const elError = document.getElementById('stat-error');
+            const elProviders = document.getElementById('stat-providers');
+            const elActive = document.getElementById('stat-active-sessions');
+            const elPending = document.getElementById('stat-starting-count');
+
+            if (elTotal) elTotal.innerText = stats.total;
+            if (elRunning) elRunning.innerText = stats.running;
+            if (elStarting) elStarting.innerText = stats.starting;
+            if (elError) elError.innerText = stats.error;
+            if (elProviders) elProviders.innerText = stats.providers;
+            if (elActive) elActive.innerText = stats.running;
+            if (elPending) elPending.innerText = stats.starting;
+
             if (doughnutChart) {
                 doughnutChart.data.datasets[0].data = [stats.running, stats.error, stats.starting];
                 doughnutChart.update();
@@ -256,8 +279,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/providers');
             globalProviders = await response.json();
 
-            typeSelect.innerHTML = globalProviders.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-            renderTunnelForm(typeSelect.value);
+            if (typeSelect) {
+                typeSelect.innerHTML = globalProviders.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+                renderTunnelForm(typeSelect.value);
+            }
 
             if (providerGrid) {
                 providerGrid.innerHTML = globalProviders.map(p => `
@@ -281,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {}
     };
 
-    providerForm.addEventListener('submit', async (e) => {
+    if (providerForm) providerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const fd = new FormData(providerForm);
         const data = {
@@ -293,26 +318,28 @@ document.addEventListener('DOMContentLoaded', () => {
             variables: []
         };
 
-        const rows = varsContainer.querySelectorAll('.bg-gray-50');
-        rows.forEach(row => {
-            const v = {
-                name: row.querySelector('[name="var_name"]').value,
-                id: row.querySelector('[name="var_id"]').value,
-                type: row.querySelector('[name="var_type"]').value,
-                default_value: row.querySelector('[name="var_default"]').value,
-                options: []
-            };
-            if (v.type === 'select') {
-                const optRows = row.querySelectorAll('.opts-list > div');
-                optRows.forEach(optRow => {
-                    v.options.push({
-                        name: optRow.querySelector('[name="opt_name"]').value,
-                        value: optRow.querySelector('[name="opt_value"]').value
+        if (varsContainer) {
+            const rows = varsContainer.querySelectorAll('.bg-gray-50');
+            rows.forEach(row => {
+                const v = {
+                    name: row.querySelector('[name="var_name"]').value,
+                    id: row.querySelector('[name="var_id"]').value,
+                    type: row.querySelector('[name="var_type"]').value,
+                    default_value: row.querySelector('[name="var_default"]').value,
+                    options: []
+                };
+                if (v.type === 'select') {
+                    const optRows = row.querySelectorAll('.opts-list > div');
+                    optRows.forEach(optRow => {
+                        v.options.push({
+                            name: optRow.querySelector('[name="opt_name"]').value,
+                            value: optRow.querySelector('[name="opt_value"]').value
+                        });
                     });
-                });
-            }
-            data.variables.push(v);
-        });
+                }
+                data.variables.push(v);
+            });
+        }
 
         await fetch('/api/providers', {
             method: 'POST',
@@ -370,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {}
     };
 
-    tunnelForm.addEventListener('submit', async (e) => {
+    if (tunnelForm) tunnelForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const rawData = Object.fromEntries(new FormData(tunnelForm).entries());
         const data = {
@@ -420,10 +447,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let logInterval = null;
     window.showLogs = async (id, name) => {
-        document.getElementById('log-node-name').innerText = name;
+        const titleEl = document.getElementById('log-node-name');
+        if (titleEl) titleEl.innerText = name;
         const container = document.getElementById('log-container');
+        if (!container) return;
         container.innerHTML = '';
-        document.getElementById('logs-modal').classList.remove('hidden');
+        const modal = document.getElementById('logs-modal');
+        if (modal) modal.classList.remove('hidden');
         const fetchLogs = async () => {
             const res = await fetch(`/api/tunnels/logs?id=${id}`);
             const logs = await res.json();

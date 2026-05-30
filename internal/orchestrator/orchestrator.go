@@ -169,6 +169,33 @@ func (o *Orchestrator) seedDefaultProviders() {
 			Variables: []VariableDef{{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"}},
 			Regex:     `https?://[a-zA-Z0-9-]+\.localhost\.run`,
 		},
+		{
+			Name:    "Localtonet",
+			Type:    "Built-in Engine",
+			Command: "localtonet authtoken ${Token} && localtonet ${Protocol} --port ${Port}",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Token", ID: "Token", Type: "input"},
+				{Name: "Protocol", ID: "Protocol", Type: "select", DefaultValue: "http", Options: []VariableOption{{Name: "HTTP", Value: "http"}, {Name: "TCP", Value: "tcp"}}},
+			},
+		},
+		{
+			Name:    "Ssh.run",
+			Type:    "Built-in Engine",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:localhost:${Port} ssh.run",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `https?://[a-zA-Z0-9-]+\.ssh\.run`,
+		},
+		{
+			Name:    "Cloudflare (Client)",
+			Type:    "Built-in Engine",
+			Command: "cloudflared tunnel run ${Name}",
+			Variables: []VariableDef{
+				{Name: "Tunnel Name/ID", ID: "Name", Type: "input"},
+			},
+		},
 	}
 
 	for _, p := range defaults {
