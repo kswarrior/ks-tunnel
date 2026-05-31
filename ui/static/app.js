@@ -236,6 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateStats = async () => {
         try {
             const response = await fetch('/api/stats');
+            if (!response.ok) throw new Error('API unstable');
             const stats = await response.json();
             const elTotal = document.getElementById('stat-total');
             const elRunning = document.getElementById('stat-running');
@@ -353,20 +354,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const fetchTunnels = async () => {
         try {
             const response = await fetch('/api/tunnels');
+            if (!response.ok) throw new Error('API unstable');
             const tunnels = await response.json();
             if (!tunnelGrid) return;
             tunnelGrid.innerHTML = tunnels.map(t => {
                 const color = t.status === 'RUNNING' ? 'green' : (t.status === 'ERROR' ? 'red' : 'yellow');
                 const isStopped = t.status === 'STOPPED' || t.status === 'ERROR';
+                const statusLabel = t.status === 'STARTING' ? 'Initializing...' : t.status;
                 return `
-                <div class="card p-6 flex flex-col space-y-6 border-t-4 border-${color}-500">
+                <div class="card p-6 flex flex-col space-y-6 border-t-4 border-${color}-500 ${t.status === 'STARTING' ? 'opacity-75 grayscale-[0.5]' : ''}">
                     <div class="flex justify-between items-start">
                         <div class="space-y-1">
                             <div class="flex items-center space-x-2">
                                 <div class="w-2 h-2 rounded-full bg-${color}-500 ${t.status === 'STARTING' ? 'animate-pulse' : ''}"></div>
                                 <h3 class="font-extrabold text-gray-900">${t.name}</h3>
                             </div>
-                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${t.type} • ${t.status}</p>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${t.type} • ${statusLabel}</p>
                             ${t.error ? `<p class="text-[9px] text-red-500 font-medium bg-red-50 p-1 rounded mt-1">${t.error}</p>` : ''}
                         </div>
                         <div class="flex space-x-1">

@@ -11,6 +11,12 @@ import (
 	"sync"
 )
 
+var ansiRegex = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[-a-zA-Z\\d\\/#&.:=?%@~%]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))")
+
+func stripAnsi(str string) string {
+	return ansiRegex.ReplaceAllString(str, "")
+}
+
 type GenericProvider struct {
 	id        string
 	name      string
@@ -208,16 +214,22 @@ func (p *GenericProvider) addLog(line string) {
 	}
 	p.logs = append(p.logs, line)
 
+	// Strip ANSI codes for URL detection
+	cleanLine := stripAnsi(line)
+
 	// Attempt to find public URL using custom regex
 	if p.publicURL == "" && p.re != nil {
-		if found := p.re.FindString(line); found != "" {
+		if found := p.re.FindString(cleanLine); found != "" {
 			p.publicURL = found
+			if p.status == StatusStarting {
+				p.status = StatusRunning
+			}
 		}
 	}
 
 	// Capture common "Ready" or "Online" messages to confirm running status
-	lower := strings.ToLower(line)
-	if strings.Contains(lower, "online") || strings.Contains(lower, "ready") || strings.Contains(lower, "tunnel established") {
+	lower := strings.ToLower(cleanLine)
+	if strings.Contains(lower, "online") || strings.Contains(lower, "ready") || strings.Contains(lower, "tunnel established") || strings.Contains(lower, "success") {
 		if p.status == StatusStarting {
 			p.status = StatusRunning
 		}

@@ -59,7 +59,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:       "Cloudflare (Quick)",
 			Type:       "Built-in Engine",
-			Command:    "cloudflared tunnel --url http://localhost:${Port}",
+			Command:    "cloudflared tunnel --url http://127.0.0.1:${Port}",
 			CheckCmd:   "which cloudflared",
 			InstallCmd: "curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared && chmod +x cloudflared && mv cloudflared /usr/local/bin/",
 			Variables: []VariableDef{
@@ -112,7 +112,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:    "Serveo",
 			Type:    "Built-in Engine",
-			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R ${Subdomain}:80:localhost:${Port} serveo.net",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R ${Subdomain}:80:127.0.0.1:${Port} serveo.net",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 				{Name: "Subdomain", ID: "Subdomain", Type: "input"},
@@ -122,7 +122,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:    "Pinggy.io",
 			Type:    "Built-in Engine",
-			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 443 -R0:localhost:${Port}+${Protocol}@ssh.pinggy.io ${Token}",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 443 -R0:127.0.0.1:${Port}+${Protocol}@ssh.pinggy.io ${Token}",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 				{Name: "Protocol", ID: "Protocol", Type: "select", DefaultValue: "http", Options: []VariableOption{{Name: "HTTP", Value: "http"}, {Name: "TCP", Value: "tcp"}}},
@@ -139,7 +139,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:       "Zrok",
 			Type:       "Built-in Engine",
-			Command:    "zrok share public http://localhost:${Port}",
+			Command:    "zrok share public http://127.0.0.1:${Port}",
 			Variables:  []VariableDef{{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"}},
 			Regex:      `https?://[a-zA-Z0-9-]+\.share\.zrok\.io`,
 			CheckCmd:   "zrok version",
@@ -148,7 +148,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:    "Localhost.run",
 			Type:    "Built-in Engine",
-			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:localhost:${Port} nokey@localhost.run",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:127.0.0.1:${Port} nokey@localhost.run",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 			},
@@ -165,7 +165,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:      "Localhost.run (Legacy)",
 			Type:      "Built-in Engine",
-			Command:   "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:localhost:${Port} localhost.run",
+			Command:   "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:127.0.0.1:${Port} localhost.run",
 			Variables: []VariableDef{{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"}},
 			Regex:     `https?://[a-zA-Z0-9-]+\.localhost\.run`,
 		},
@@ -182,7 +182,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:    "Ssh.run",
 			Type:    "Built-in Engine",
-			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:localhost:${Port} ssh.run",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:127.0.0.1:${Port} ssh.run",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 			},
@@ -199,7 +199,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:    "SocketXP",
 			Type:    "Built-in Engine",
-			Command: "socketxp connect http://localhost:${Port} --authtoken ${Token}",
+			Command: "socketxp connect http://127.0.0.1:${Port} --authtoken ${Token}",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 				{Name: "Token", ID: "Token", Type: "input"},
@@ -219,7 +219,7 @@ func (o *Orchestrator) seedDefaultProviders() {
 		{
 			Name:    "Pinggy (Quick)",
 			Type:    "Built-in Engine",
-			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 443 -R0:localhost:${Port} a.pinggy.io",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 443 -R0:127.0.0.1:${Port} a.pinggy.io",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 			},
