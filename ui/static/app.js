@@ -228,39 +228,54 @@ document.addEventListener('DOMContentLoaded', () => {
             const statusLabel = isStarting ? 'Orchestrating...' : t.status;
 
             return `
-            <div class="premium-card p-8 flex flex-col space-y-8 border-t-4 border-${colorClass}-500 ${isStarting ? 'opacity-80' : ''}">
-                <div class="flex justify-between items-start">
+            <div class="premium-card p-8 flex flex-col space-y-8 border-t-4 border-${colorClass}-500 group relative overflow-hidden transition-all duration-500">
+                ${isStarting ? '<div class="absolute inset-0 shimmer pointer-events-none opacity-20"></div>' : ''}
+
+                <div class="flex justify-between items-start relative z-10">
                     <div class="space-y-2">
                         <div class="flex items-center space-x-3">
-                            <div class="w-2.5 h-2.5 rounded-full bg-${colorClass}-500 ${isStarting ? 'pulse-animation' : ''} shadow-[0_0_8px_rgba(0,0,0,0.1)]"></div>
-                            <h3 class="font-black text-slate-900 tracking-tight">${t.name}</h3>
+                            <div class="w-3 h-3 rounded-full bg-${colorClass}-500 ${isStarting ? 'pulse-animation shadow-[0_0_12px_#6366f1]' : (isRunning ? 'shadow-[0_0_12px_#10b981]' : '')} border-2 border-white"></div>
+                            <h3 class="font-black text-slate-900 tracking-tight text-lg">${t.name}</h3>
                         </div>
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">${t.type} &bull; ${statusLabel}</p>
-                        ${t.error ? `<p class="text-[10px] font-bold text-rose-500 bg-rose-50 px-3 py-1.5 rounded-lg mt-2 ring-1 ring-rose-100">${t.error}</p>` : ''}
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">${t.type} &bull; <span class="text-${colorClass}-600">${statusLabel}</span></p>
                     </div>
                     <div class="flex space-x-2">
-                         <button onclick="showLogs('${t.id}', '${t.name}')" title="Inspect Streams" class="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                         <button onclick="showLogs('${t.id}', '${t.name}')" title="Inspect Streams" class="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all active:scale-90">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         </button>
-                        <button onclick="deleteTunnel('${t.id}')" title="Terminate" class="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        <button onclick="deleteTunnel('${t.id}')" title="Terminate" class="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all active:scale-90">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
                     </div>
                 </div>
 
-                <div class="bg-slate-50/80 rounded-2xl p-5 space-y-4 border border-slate-100">
-                    <div class="flex flex-col space-y-1.5">
+                ${t.error ? `
+                <div class="relative z-10 bg-rose-50 border border-rose-100 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div class="flex items-start space-x-3">
+                        <svg class="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <p class="text-[10px] font-bold text-rose-600 leading-relaxed">${t.error}</p>
+                    </div>
+                </div>` : ''}
+
+                <div class="bg-slate-50/50 rounded-[1.5rem] p-6 space-y-4 border border-slate-100 relative z-10 group-hover:bg-white group-hover:shadow-sm transition-all duration-500">
+                    <div class="flex flex-col space-y-2">
                         <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Public Endpoint</span>
-                        <a href="${t.public_url}" target="_blank" class="text-xs font-black text-indigo-600 truncate hover:underline">${t.public_url || 'Allocating...'}</a>
+                        <a href="${t.public_url}" target="_blank" class="text-xs font-black text-indigo-600 truncate hover:underline decoration-2 underline-offset-4">${t.public_url || 'Allocating...'}</a>
                     </div>
                 </div>
 
-                <div class="flex space-x-3 mt-auto">
+                <div class="flex space-x-3 mt-auto relative z-10">
                     ${isStopped ?
-                        `<button onclick="startTunnel('${t.id}')" class="flex-1 py-3.5 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-[0.15em] rounded-xl hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition-all active:scale-95">Awaken</button>` :
-                        `<button onclick="stopTunnel('${t.id}')" class="flex-1 py-3.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.15em] rounded-xl hover:bg-black shadow-lg shadow-slate-200 transition-all active:scale-95">Freeze</button>`
+                        `<button id="btn-start-${t.id}" onclick="startTunnel('${t.id}')" class="flex-1 py-4 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-emerald-600 shadow-xl shadow-emerald-100 transition-all active:scale-95 flex items-center justify-center space-x-2">
+                            <span>Awaken</span>
+                        </button>` :
+                        `<button id="btn-stop-${t.id}" onclick="stopTunnel('${t.id}')" class="flex-1 py-4 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-black shadow-xl shadow-slate-200 transition-all active:scale-95 flex items-center justify-center space-x-2">
+                            <span>Freeze</span>
+                        </button>`
                     }
-                    <button onclick="restartTunnel('${t.id}')" class="flex-1 py-3.5 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-[0.15em] rounded-xl hover:bg-slate-200 transition-all active:scale-95">Reboot</button>
+                    <button id="btn-restart-${t.id}" onclick="restartTunnel('${t.id}')" class="flex-1 py-4 bg-white border-2 border-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-50 hover:border-slate-200 transition-all active:scale-95 flex items-center justify-center">
+                        <span>Reboot</span>
+                    </button>
                 </div>
             </div>
             `;
@@ -337,11 +352,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!tunnel) return;
 
         const originalStatus = tunnel.status;
+        const btn = document.getElementById(`btn-${action}-${id}`);
+        const originalContent = btn ? btn.innerHTML : '';
 
         // Optimistic State
         if (action === 'start' || action === 'restart') tunnel.status = 'STARTING';
         if (action === 'stop') tunnel.status = 'STOPPED';
         renderTunnels();
+
+        // Add loading state to button
+        const newBtn = document.getElementById(`btn-${action}-${id}`);
+        if (newBtn) {
+            newBtn.disabled = true;
+            newBtn.innerHTML = `
+                <svg class="animate-spin h-3 w-3 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.062 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Processing</span>
+            `;
+        }
 
         try {
             const res = await fetch(`/api/tunnels/${action}`, {
