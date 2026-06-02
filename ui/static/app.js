@@ -14,7 +14,7 @@ window.toggleMobileMenu = () => {
 };
 
 window.showSection = (sectionId) => {
-    const sections = ['dashboard', 'tunnels', 'providers'];
+    const sections = ['dashboard', 'tunnels', 'providers', 'deploy-tunnel', 'configure-engine'];
     const navLinks = document.querySelectorAll('.nav-link');
     sections.forEach(s => {
         const el = document.getElementById(`section-${s}`);
@@ -24,16 +24,35 @@ window.showSection = (sectionId) => {
     if (target) target.classList.remove('hidden');
 
     navLinks.forEach(link => {
-        if (link.dataset.section === sectionId) {
+        const activeSection = (sectionId === 'deploy-tunnel') ? 'tunnels' : (sectionId === 'configure-engine' ? 'providers' : sectionId);
+        if (link.dataset.section === activeSection) {
             link.classList.add('active');
         } else {
             link.classList.remove('active');
         }
     });
 
-    const titles = { dashboard: 'Dashboard', tunnels: 'Tunnels', providers: 'Engines' };
+    const titles = {
+        dashboard: 'Dashboard',
+        tunnels: 'Tunnels',
+        providers: 'Engines',
+        'deploy-tunnel': 'Deploy Tunnel',
+        'configure-engine': 'Configure Engine'
+    };
+
+    const breadcrumbs = {
+        dashboard: 'Overview',
+        tunnels: 'Edge Gateways',
+        providers: 'Core Logic',
+        'deploy-tunnel': 'Deployment',
+        'configure-engine': 'Configuration'
+    };
+
     const titleEl = document.getElementById('page-title');
     if (titleEl) titleEl.innerText = titles[sectionId] || 'Dashboard';
+
+    const breadcrumbEl = document.getElementById('breadcrumb-sub');
+    if (breadcrumbEl) breadcrumbEl.innerText = breadcrumbs[sectionId] || 'Overview';
 
     if (!window.sidebar) window.sidebar = document.getElementById('sidebar');
     if (!window.backdrop) window.backdrop = document.getElementById('sidebar-backdrop');
@@ -463,8 +482,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch('/api/tunnels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
             if (!res.ok) throw new Error(await res.text());
-            closeModal('add-modal');
             showToast('Protocol Dispatched');
+            showSection('tunnels');
             fetchTunnels();
             updateStats();
         } catch (e) {
@@ -506,8 +525,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await fetch('/api/providers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            closeModal('provider-modal');
             showToast('Engine Integrated');
+            showSection('providers');
             fetchProviders();
         } catch (e) {
             showToast('Integration Failed', 'error');

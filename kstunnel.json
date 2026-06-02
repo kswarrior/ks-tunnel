@@ -1,0 +1,21 @@
+{
+  "providers": [
+    {
+      "name": "FullPage Engine",
+      "type": "",
+      "command": "test",
+      "variables": [
+        {
+          "name": "",
+          "type": "input",
+          "id": "",
+          "default_value": ""
+        }
+      ],
+      "regex": "",
+      "check_cmd": "",
+      "install_cmd": ""
+    }
+  ],
+  "tunnels": null
+}
