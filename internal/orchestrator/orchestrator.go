@@ -2,8 +2,11 @@ package orchestrator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/elite-architect/kstunnel/internal/tunnel"
@@ -38,6 +41,7 @@ type Orchestrator struct {
 	tunnels   map[string]tunnel.TunnelProvider
 	providers map[string]ProviderDef
 	mu        sync.RWMutex
+	filePath  string
 }
 
 func NewOrchestrator() *Orchestrator {
@@ -53,11 +57,12 @@ func (o *Orchestrator) seedDefaultProviders() {
 	o.SeedNgrok()
 	defaults := []ProviderDef{
 		{
-			Name:    "Cloudflare (Quick)",
-			Type:    "Built-in Engine",
-			Command: "cloudflared tunnel --url ${Protocol}://localhost:${Port}",
+			Name:       "Cloudflare (Quick)",
+			Type:       "Built-in Engine",
+			Command:    "cloudflared tunnel --url http://127.0.0.1:${Port}",
+			CheckCmd:   "which cloudflared",
+			InstallCmd: "curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared && chmod +x cloudflared && mv cloudflared /usr/local/bin/",
 			Variables: []VariableDef{
-				{Name: "Protocol", ID: "Protocol", Type: "select", DefaultValue: "http", Options: []VariableOption{{Name: "HTTP", Value: "http"}, {Name: "TCP", Value: "tcp"}}},
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 			},
 			Regex: `https://[a-zA-Z0-9-]+\.trycloudflare\.com`,
@@ -71,48 +76,57 @@ func (o *Orchestrator) seedDefaultProviders() {
 			},
 		},
 		{
-			Name:    "Localtunnel",
-			Type:    "Built-in Engine",
-			Command: "lt --port ${Port}",
+			Name:       "Localtunnel",
+			Type:       "Built-in Engine",
+			Command:    "lt --port ${Port} --subdomain ${Subdomain}",
+			CheckCmd:   "which lt",
+			InstallCmd: "npm install -g localtunnel",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Subdomain", ID: "Subdomain", Type: "input", DefaultValue: ""},
 			},
 			Regex: `https?://[a-zA-Z0-9.-]+\.(loca\.lt|localtunnel\.me)`,
 		},
 		{
 			Name:    "Bore",
 			Type:    "Built-in Engine",
-			Command: "bore local ${Port} --to bore.pub",
+			Command: "bore local ${Port} --to bore.pub --secret ${Secret} --id ${ID}",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Secret", ID: "Secret", Type: "input"},
+				{Name: "ID", ID: "ID", Type: "input"},
 			},
 			Regex: `bore.pub:[0-9]+`,
 		},
 		{
 			Name:    "Loophole",
 			Type:    "Built-in Engine",
-			Command: "loophole http ${Port}",
+			Command: "loophole http ${Port} --hostname ${Subdomain} --token ${Token}",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Subdomain", ID: "Subdomain", Type: "input"},
+				{Name: "Token", ID: "Token", Type: "input"},
 			},
 			Regex: `https?://[a-zA-Z0-9.-]+\.loophole\.site`,
 		},
 		{
 			Name:    "Serveo",
 			Type:    "Built-in Engine",
-			Command: "ssh -R 80:localhost:${Port} serveo.net",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R ${Subdomain}:80:127.0.0.1:${Port} serveo.net",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Subdomain", ID: "Subdomain", Type: "input"},
 			},
 			Regex: `https?://[a-zA-Z0-9.-]+\.serveo\.net`,
 		},
 		{
 			Name:    "Pinggy.io",
 			Type:    "Built-in Engine",
-			Command: "ssh -p 443 -R0:localhost:${Port}+${Protocol}@ssh.pinggy.io",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 443 -R0:127.0.0.1:${Port}+${Protocol}@ssh.pinggy.io ${Token}",
 			Variables: []VariableDef{
 				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 				{Name: "Protocol", ID: "Protocol", Type: "select", DefaultValue: "http", Options: []VariableOption{{Name: "HTTP", Value: "http"}, {Name: "TCP", Value: "tcp"}}},
+				{Name: "Token", ID: "Token", Type: "input"},
 			},
 			Regex: `https?://[a-zA-Z0-9.-]+\.pinggy\.link`,
 		},
@@ -122,6 +136,95 @@ func (o *Orchestrator) seedDefaultProviders() {
 			Command: "playit",
 			Regex:   `[a-zA-Z0-9.-]+\.playit\.gg`,
 		},
+		{
+			Name:       "Zrok",
+			Type:       "Built-in Engine",
+			Command:    "zrok share public http://127.0.0.1:${Port}",
+			Variables:  []VariableDef{{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"}},
+			Regex:      `https?://[a-zA-Z0-9-]+\.share\.zrok\.io`,
+			CheckCmd:   "zrok version",
+			InstallCmd: "curl -sSL https://get.openziti.io/install.sh | bash",
+		},
+		{
+			Name:    "Localhost.run",
+			Type:    "Built-in Engine",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:127.0.0.1:${Port} nokey@localhost.run",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.lhr\.life`,
+		},
+		{
+			Name:       "Telebit",
+			Type:       "Built-in Engine",
+			Command:    "telebit http ${Port}",
+			Variables:  []VariableDef{{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"}},
+			CheckCmd:   "telebit version",
+			InstallCmd: "curl -sSL https://get.telebit.io | bash",
+		},
+		{
+			Name:      "Localhost.run (Legacy)",
+			Type:      "Built-in Engine",
+			Command:   "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:127.0.0.1:${Port} localhost.run",
+			Variables: []VariableDef{{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"}},
+			Regex:     `https?://[a-zA-Z0-9-]+\.localhost\.run`,
+		},
+		{
+			Name:    "Localtonet",
+			Type:    "Built-in Engine",
+			Command: "localtonet authtoken ${Token} && localtonet ${Protocol} --port ${Port}",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Token", ID: "Token", Type: "input"},
+				{Name: "Protocol", ID: "Protocol", Type: "select", DefaultValue: "http", Options: []VariableOption{{Name: "HTTP", Value: "http"}, {Name: "TCP", Value: "tcp"}}},
+			},
+		},
+		{
+			Name:    "Ssh.run",
+			Type:    "Built-in Engine",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -R 80:127.0.0.1:${Port} ssh.run",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `https?://[a-zA-Z0-9-]+\.ssh\.run`,
+		},
+		{
+			Name:    "Cloudflare (Client)",
+			Type:    "Built-in Engine",
+			Command: "cloudflared tunnel run ${Name}",
+			Variables: []VariableDef{
+				{Name: "Tunnel Name/ID", ID: "Name", Type: "input"},
+			},
+		},
+		{
+			Name:    "SocketXP",
+			Type:    "Built-in Engine",
+			Command: "socketxp connect http://127.0.0.1:${Port} --authtoken ${Token}",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Token", ID: "Token", Type: "input"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.socketxp\.com`,
+		},
+		{
+			Name:    "Tunnelin",
+			Type:    "Built-in Engine",
+			Command: "tunnelin --port ${Port} --token ${Token}",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+				{Name: "Token", ID: "Token", Type: "input"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.tunnelin\.com`,
+		},
+		{
+			Name:    "Pinggy (Quick)",
+			Type:    "Built-in Engine",
+			Command: "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 443 -R0:127.0.0.1:${Port} a.pinggy.io",
+			Variables: []VariableDef{
+				{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
+			},
+			Regex: `https?://[a-zA-Z0-9.-]+\.pinggy\.link`,
+		},
 	}
 
 	for _, p := range defaults {
@@ -130,21 +233,22 @@ func (o *Orchestrator) seedDefaultProviders() {
 }
 
 func (o *Orchestrator) AddTunnel(provider tunnel.TunnelProvider) error {
-	info := provider.Status()
 	o.mu.Lock()
 	defer o.mu.Unlock()
+	info := provider.Status()
 	if _, exists := o.tunnels[info.ID]; exists {
 		return fmt.Errorf("tunnel with ID %s already exists", info.ID)
 	}
 	o.tunnels[info.ID] = provider
+	o.saveUnlocked()
 	return nil
 }
 
 func (o *Orchestrator) UpdateTunnel(id string, provider tunnel.TunnelProvider) error {
 	o.mu.Lock()
+	defer o.mu.Unlock()
 	old, exists := o.tunnels[id]
 	if !exists {
-		o.mu.Unlock()
 		return fmt.Errorf("tunnel with ID %s not found", id)
 	}
 
@@ -154,7 +258,7 @@ func (o *Orchestrator) UpdateTunnel(id string, provider tunnel.TunnelProvider) e
 	}
 
 	o.tunnels[id] = provider
-	o.mu.Unlock()
+	o.saveUnlocked()
 	return nil
 }
 
@@ -184,9 +288,9 @@ func (o *Orchestrator) StopTunnel(id string) error {
 
 func (o *Orchestrator) DeleteTunnel(id string) error {
 	o.mu.Lock()
+	defer o.mu.Unlock()
 	provider, exists := o.tunnels[id]
 	if !exists {
-		o.mu.Unlock()
 		return fmt.Errorf("tunnel with ID %s not found", id)
 	}
 
@@ -194,7 +298,7 @@ func (o *Orchestrator) DeleteTunnel(id string) error {
 		provider.Stop()
 	}
 	delete(o.tunnels, id)
-	o.mu.Unlock()
+	o.saveUnlocked()
 	return nil
 }
 
@@ -286,6 +390,7 @@ func (o *Orchestrator) AddProvider(def ProviderDef) {
 	}
 
 	o.providers[def.Name] = def
+	o.saveUnlocked()
 }
 
 func (o *Orchestrator) SeedNgrok() {
@@ -297,6 +402,7 @@ func (o *Orchestrator) SeedNgrok() {
 		Variables: []VariableDef{
 			{Name: "Port", ID: "Port", Type: "input", DefaultValue: "8080"},
 			{Name: "Token", ID: "Token", Type: "input"},
+			{Name: "Domain", ID: "Domain", Type: "input"},
 		},
 	}
 }
@@ -322,6 +428,7 @@ func (o *Orchestrator) DeleteProvider(name string) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	delete(o.providers, name)
+	o.saveUnlocked()
 }
 
 func (o *Orchestrator) StopAll() {
@@ -330,4 +437,81 @@ func (o *Orchestrator) StopAll() {
 	for _, p := range o.tunnels {
 		p.Stop()
 	}
+}
+
+type ConfigState struct {
+	Providers []ProviderDef       `json:"providers"`
+	Tunnels   []tunnel.TunnelInfo `json:"tunnels"`
+}
+
+func (o *Orchestrator) SetPersistence(path string) {
+	o.mu.Lock()
+	o.filePath = path
+	o.mu.Unlock()
+}
+
+func (o *Orchestrator) Save() error {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.saveUnlocked()
+}
+
+func (o *Orchestrator) saveUnlocked() error {
+	if o.filePath == "" {
+		return nil
+	}
+
+	var state ConfigState
+	for _, p := range o.providers {
+		if p.Type != "Built-in Engine" {
+			state.Providers = append(state.Providers, p)
+		}
+	}
+	for _, t := range o.tunnels {
+		state.Tunnels = append(state.Tunnels, t.Status())
+	}
+
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(o.filePath, data, 0644)
+}
+
+func (o *Orchestrator) Load(path string) error {
+	o.SetPersistence(path)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	var state ConfigState
+	if err := json.Unmarshal(data, &state); err != nil {
+		return err
+	}
+
+	for _, p := range state.Providers {
+		o.AddProvider(p)
+	}
+
+	for _, t := range state.Tunnels {
+		var provider tunnel.TunnelProvider
+		if strings.ToLower(t.Type) == "ngrok" {
+			provider = tunnel.NewNgrokProvider(t.ID, t.Name, t.Config["Port"], t.Config["Token"], t.Config["Domain"])
+		} else {
+			pDef, ok := o.GetProvider(t.Type)
+			if ok {
+				provider = tunnel.NewGenericProvider(t.ID, t.Name, t.Type, pDef.Command, pDef.Regex, pDef.CheckCmd, pDef.InstallCmd, t.Config)
+			}
+		}
+		if provider != nil {
+			o.AddTunnel(provider)
+			// Don't auto-start on load to prevent chaos, or let user decide?
+			// Let's keep them in stopped state for now.
+		}
+	}
+	return nil
 }

@@ -1,42 +1,73 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Navigation Logic
+// Global state and functions
+window.sidebar = null;
+window.backdrop = null;
+
+window.toggleMobileMenu = () => {
+    if (!window.sidebar || !window.backdrop) {
+        window.sidebar = document.getElementById('sidebar');
+        window.backdrop = document.getElementById('sidebar-backdrop');
+    }
+    if (!window.sidebar || !window.backdrop) return;
+    window.sidebar.classList.toggle('-translate-x-full');
+    window.sidebar.classList.toggle('open');
+    window.backdrop.classList.toggle('hidden');
+};
+
+window.showSection = (sectionId) => {
+    const sections = ['dashboard', 'tunnels', 'providers', 'deploy-tunnel', 'configure-engine'];
     const navLinks = document.querySelectorAll('.nav-link');
-    const sections = ['dashboard', 'tunnels', 'providers'];
-    const sidebar = document.getElementById('sidebar');
-    const mobileToggle = document.getElementById('mobile-toggle');
-    const backdrop = document.getElementById('sidebar-backdrop');
+    sections.forEach(s => {
+        const el = document.getElementById(`section-${s}`);
+        if (el) el.classList.add('hidden');
+    });
+    const target = document.getElementById(`section-${sectionId}`);
+    if (target) target.classList.remove('hidden');
 
-    const toggleMobileMenu = () => {
-        sidebar.classList.toggle('-translate-x-full');
-        backdrop.classList.toggle('hidden');
-    };
-
-    const showSection = (sectionId) => {
-        sections.forEach(s => {
-            const el = document.getElementById(`section-${s}`);
-            if (el) el.classList.add('hidden');
-        });
-        const target = document.getElementById(`section-${sectionId}`);
-        if (target) target.classList.remove('hidden');
-
-        navLinks.forEach(link => {
-            if (link.dataset.section === sectionId) {
-                link.classList.add('active');
-                link.classList.remove('text-gray-500');
-            } else {
-                link.classList.remove('active');
-                link.classList.add('text-gray-500');
-            }
-        });
-
-        const titles = { dashboard: 'Dashboard', tunnels: 'Tunnels', providers: 'Providers' };
-        document.getElementById('page-title').innerText = titles[sectionId] || 'Dashboard';
-
-        if (!sidebar.classList.contains('-translate-x-full')) {
-            sidebar.classList.add('-translate-x-full');
-            backdrop.classList.add('hidden');
+    navLinks.forEach(link => {
+        const activeSection = (sectionId === 'deploy-tunnel') ? 'tunnels' : (sectionId === 'configure-engine' ? 'providers' : sectionId);
+        if (link.dataset.section === activeSection) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
         }
+    });
+
+    const titles = {
+        dashboard: 'Dashboard',
+        tunnels: 'Tunnels',
+        providers: 'Engines',
+        'deploy-tunnel': 'Deploy Tunnel',
+        'configure-engine': 'Configure Engine'
     };
+
+    const breadcrumbs = {
+        dashboard: 'Overview',
+        tunnels: 'Edge Gateways',
+        providers: 'Core Logic',
+        'deploy-tunnel': 'Deployment',
+        'configure-engine': 'Configuration'
+    };
+
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) titleEl.innerText = titles[sectionId] || 'Dashboard';
+
+    const breadcrumbEl = document.getElementById('breadcrumb-sub');
+    if (breadcrumbEl) breadcrumbEl.innerText = breadcrumbs[sectionId] || 'Overview';
+
+    if (!window.sidebar) window.sidebar = document.getElementById('sidebar');
+    if (!window.backdrop) window.backdrop = document.getElementById('sidebar-backdrop');
+
+    if (window.sidebar && window.sidebar.classList.contains('open')) {
+        window.sidebar.classList.remove('open');
+        window.sidebar.classList.add('-translate-x-full');
+        if (window.backdrop) window.backdrop.classList.add('hidden');
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.sidebar = document.getElementById('sidebar');
+    window.backdrop = document.getElementById('sidebar-backdrop');
+    const navLinks = document.querySelectorAll('.nav-link');
 
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -47,14 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    mobileToggle.addEventListener('click', toggleMobileMenu);
-    backdrop.addEventListener('click', toggleMobileMenu);
-
-    document.querySelector('main').addEventListener('click', () => {
-        if (window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
-            toggleMobileMenu();
-        }
-    });
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+        mainEl.addEventListener('click', () => {
+            if (window.innerWidth < 1024 && window.sidebar && window.sidebar.classList.contains('open')) {
+                toggleMobileMenu();
+            }
+        });
+    }
 
     // Charting Logic
     let doughnutChart = null;
@@ -67,15 +98,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     labels: ['Healthy', 'Error', 'Starting'],
                     datasets: [{
                         data: [0, 0, 0],
-                        backgroundColor: ['#3fb950', '#ff5b5b', '#faad14'],
+                        backgroundColor: ['#10b981', '#f43f5e', '#6366f1'],
+                        hoverOffset: 4,
                         borderWidth: 0,
-                        cutout: '70%'
+                        cutout: '75%'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
+                    plugins: { legend: { display: false } },
+                    animation: { animateRotate: true, animateScale: true }
                 }
             });
         }
@@ -89,42 +122,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const createVarRow = (v = {}) => {
         const rowId = 'var-' + Math.random().toString(36).substr(2, 9);
         const row = document.createElement('div');
-        row.className = 'bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4';
+        row.className = 'bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-6 animate-in fade-in zoom-in-95 duration-300 relative';
         row.id = rowId;
         row.innerHTML = `
-            <div class="grid grid-cols-4 gap-4">
-                <div class="space-y-1">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase">Label</label>
-                    <input type="text" name="var_name" value="${v.name || ''}" placeholder="Protocol" class="w-full bg-white border border-gray-100 rounded-lg p-2 text-xs focus:border-red-500 outline-none">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Variable Label</label>
+                    <input type="text" name="var_name" value="${v.name || ''}" placeholder="e.g. Protocol" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-xs font-bold focus:border-indigo-600 outline-none transition-all">
                 </div>
-                <div class="space-y-1">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase">ID (Internal)</label>
-                    <input type="text" name="var_id" value="${v.id || ''}" placeholder="Protocol" class="w-full bg-white border border-gray-100 rounded-lg p-2 text-xs focus:border-red-500 outline-none">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Variable ID</label>
+                    <input type="text" name="var_id" value="${v.id || ''}" placeholder="e.g. Protocol" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-xs font-mono focus:border-indigo-600 outline-none transition-all">
                 </div>
-                <div class="space-y-1">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase">Type</label>
-                    <select name="var_type" class="w-full bg-white border border-gray-100 rounded-lg p-2 text-xs focus:border-red-500 outline-none">
-                        <option value="input" ${v.type==='input'?'selected':''}>Input</option>
-                        <option value="select" ${v.type==='select'?'selected':''}>Select</option>
-                    </select>
-                </div>
-                <div class="flex items-end justify-between">
-                    <div class="space-y-1 flex-1">
-                        <label class="text-[9px] font-bold text-gray-400 uppercase">Default</label>
-                        <input type="text" name="var_default" value="${v.default_value || ''}" placeholder="http" class="w-full bg-white border border-gray-100 rounded-lg p-2 text-xs focus:border-red-500 outline-none">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Input Type</label>
+                    <div class="relative">
+                        <select name="var_type" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-xs font-bold focus:border-indigo-600 outline-none appearance-none cursor-pointer">
+                            <option value="input" ${v.type==='input'?'selected':''}>Text Input</option>
+                            <option value="select" ${v.type==='select'?'selected':''}>Selection List</option>
+                        </select>
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="3"></path></svg>
+                        </div>
                     </div>
-                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="ml-2 mb-1 p-2 text-gray-300 hover:text-red-500">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
+                </div>
+                <div class="space-y-2 relative">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Default Value</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="text" name="var_default" value="${v.default_value || ''}" placeholder="e.g. http" class="flex-1 bg-white border-2 border-slate-100 rounded-xl p-3 text-xs font-bold focus:border-indigo-600 outline-none transition-all">
+                        <button type="button" onclick="document.getElementById('${rowId}').remove()" class="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="options-container ${v.type === 'select' ? '' : 'hidden'} space-y-2">
-                <div class="flex justify-between items-center">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase">Options</label>
-                    <button type="button" class="add-opt-btn text-[8px] bg-white border px-2 py-0.5 rounded font-bold uppercase">Add Option</button>
+            <div class="options-container ${v.type === 'select' ? '' : 'hidden'} space-y-4">
+                <div class="flex justify-between items-center bg-white px-4 py-2 rounded-xl border border-slate-100">
+                    <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Available Options</label>
+                    <button type="button" class="add-opt-btn text-[8px] font-black text-indigo-600 uppercase tracking-widest hover:underline">+ Add Entry</button>
                 </div>
-                <div class="opts-list grid grid-cols-2 gap-2">
-                    <!-- Options filled here -->
+                <div class="opts-list grid grid-cols-2 gap-3">
+                    <!-- Options -->
                 </div>
             </div>
         `;
@@ -136,11 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const createOptRow = (opt = {}) => {
             const optRow = document.createElement('div');
-            optRow.className = 'flex space-x-1';
+            optRow.className = 'flex items-center space-x-2 animate-in slide-in-from-left-2 duration-200';
             optRow.innerHTML = `
-                <input type="text" name="opt_name" value="${opt.name || ''}" placeholder="Label" class="flex-1 bg-white border border-gray-100 rounded p-1 text-[10px] outline-none">
-                <input type="text" name="opt_value" value="${opt.value || ''}" placeholder="Value" class="flex-1 bg-white border border-gray-100 rounded p-1 text-[10px] outline-none">
-                <button type="button" onclick="this.parentElement.remove()" class="text-gray-300 hover:text-red-500 px-1">×</button>
+                <input type="text" name="opt_name" value="${opt.name || ''}" placeholder="Label" class="flex-1 bg-white border border-slate-200 rounded-lg p-2 text-[10px] font-bold outline-none focus:border-indigo-600 transition-all">
+                <input type="text" name="opt_value" value="${opt.value || ''}" placeholder="Value" class="flex-1 bg-white border border-slate-200 rounded-lg p-2 text-[10px] font-mono outline-none focus:border-indigo-600 transition-all">
+                <button type="button" onclick="this.parentElement.remove()" class="text-slate-300 hover:text-rose-500 p-1">×</button>
             `;
             optsList.appendChild(optRow);
         };
@@ -150,124 +188,373 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         addOptBtn.addEventListener('click', () => createOptRow());
-
         if (v.options) v.options.forEach(opt => createOptRow(opt));
-
-        varsContainer.appendChild(row);
+        if (varsContainer) varsContainer.appendChild(row);
     };
 
-    addVarBtn.addEventListener('click', () => createVarRow());
+    if (addVarBtn) addVarBtn.addEventListener('click', () => createVarRow());
 
-    // API Handling
-    const tunnelGrid = document.getElementById('tunnel-grid');
-    const providerGrid = document.getElementById('provider-grid');
-    const tunnelForm = document.getElementById('tunnel-form');
-    const providerForm = document.getElementById('provider-form');
-    const typeSelect = tunnelForm.querySelector('select[name="type"]');
-    const dynamicTunnelVars = document.getElementById('dynamic-tunnel-vars');
-    const modalTitle = document.getElementById('modal-title');
-
+    // State & Rendering
+    let globalTunnels = [];
     let globalProviders = [];
 
+    const showToast = (msg, type = 'success') => {
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toast-msg');
+        const toastIcon = document.getElementById('toast-icon');
+        if (!toast || !toastMsg || !toastIcon) return;
+
+        toastMsg.innerText = msg;
+        toastIcon.className = `w-2.5 h-2.5 rounded-full ${type === 'success' ? 'bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.8)]' : 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.8)]'}`;
+
+        toast.classList.remove('hidden', 'translate-y-32');
+        setTimeout(() => {
+            toast.classList.add('translate-y-32');
+            setTimeout(() => toast.classList.add('hidden'), 500);
+        }, 4000);
+    };
+
+    const renderTunnels = () => {
+        const tunnelGrid = document.getElementById('tunnel-grid');
+        if (!tunnelGrid) return;
+
+        tunnelGrid.innerHTML = globalTunnels.map(t => {
+            const isError = t.status === 'ERROR';
+            const isRunning = t.status === 'RUNNING';
+            const isStarting = t.status === 'STARTING';
+            const isStopped = t.status === 'STOPPED' || isError;
+
+            const colorClass = isError ? 'rose' : (isRunning ? 'emerald' : 'indigo');
+            const statusLabel = isStarting ? 'Orchestrating...' : t.status;
+
+            return `
+            <div class="premium-card p-8 flex flex-col space-y-8 border-t-4 border-${colorClass}-500 group relative overflow-hidden transition-all duration-500">
+                ${isStarting ? '<div class="absolute inset-0 shimmer pointer-events-none opacity-20"></div>' : ''}
+
+                <div class="flex justify-between items-start relative z-10">
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 rounded-full bg-${colorClass}-500 ${isStarting ? 'pulse-animation shadow-[0_0_12px_#6366f1]' : (isRunning ? 'shadow-[0_0_12px_#10b981]' : '')} border-2 border-white"></div>
+                            <h3 class="font-black text-slate-900 tracking-tight text-lg">${t.name}</h3>
+                        </div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">${t.type} &bull; <span class="text-${colorClass}-600">${statusLabel}</span></p>
+                    </div>
+                    <div class="flex space-x-2">
+                         <button onclick="showLogs('${t.id}', '${t.name}')" title="Inspect Streams" class="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all active:scale-90">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </button>
+                        <button onclick="deleteTunnel('${t.id}')" title="Terminate" class="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all active:scale-90">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                ${t.error ? `
+                <div class="relative z-10 bg-rose-50 border border-rose-100 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div class="flex items-start space-x-3">
+                        <svg class="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <p class="text-[10px] font-bold text-rose-600 leading-relaxed">${t.error}</p>
+                    </div>
+                </div>` : ''}
+
+                <div class="bg-slate-50/50 rounded-[1.5rem] p-6 space-y-4 border border-slate-100 relative z-10 group-hover:bg-white group-hover:shadow-sm transition-all duration-500">
+                    <div class="flex flex-col space-y-2">
+                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Public Endpoint</span>
+                        <a href="${t.public_url}" target="_blank" class="text-xs font-black text-indigo-600 truncate hover:underline decoration-2 underline-offset-4">${t.public_url || 'Allocating...'}</a>
+                    </div>
+                </div>
+
+                <div class="flex space-x-3 mt-auto relative z-10">
+                    ${isStopped ?
+                        `<button id="btn-start-${t.id}" onclick="startTunnel('${t.id}')" class="flex-1 py-4 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-emerald-600 shadow-xl shadow-emerald-100 transition-all active:scale-95 flex items-center justify-center space-x-2">
+                            <span>Awaken</span>
+                        </button>` :
+                        `<button id="btn-stop-${t.id}" onclick="stopTunnel('${t.id}')" class="flex-1 py-4 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-black shadow-xl shadow-slate-200 transition-all active:scale-95 flex items-center justify-center space-x-2">
+                            <span>Freeze</span>
+                        </button>`
+                    }
+                    <button id="btn-restart-${t.id}" onclick="restartTunnel('${t.id}')" class="flex-1 py-4 bg-white border-2 border-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-50 hover:border-slate-200 transition-all active:scale-95 flex items-center justify-center">
+                        <span>Reboot</span>
+                    </button>
+                </div>
+            </div>
+            `;
+        }).join('');
+    };
+
+    const fetchTunnels = async () => {
+        try {
+            const res = await fetch('/api/tunnels');
+            if (!res.ok) throw new Error();
+            globalTunnels = await res.json();
+            renderTunnels();
+        } catch (e) {}
+    };
+
+    const updateStats = async () => {
+        try {
+            const res = await fetch('/api/stats');
+            if (!res.ok) throw new Error();
+            const stats = await res.json();
+
+            const sets = {
+                'stat-total': stats.total,
+                'stat-running': stats.running,
+                'stat-starting': stats.starting,
+                'stat-error': stats.error,
+                'stat-providers': stats.providers,
+                'stat-active-sessions': stats.running,
+                'stat-starting-count': stats.starting
+            };
+
+            Object.entries(sets).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = val;
+            });
+
+            if (doughnutChart) {
+                doughnutChart.data.datasets[0].data = [stats.running, stats.error, stats.starting];
+                doughnutChart.update();
+            }
+
+            const sysMsg = document.getElementById('system-status-msg');
+            const sysContainer = document.getElementById('system-status-container');
+            const sysIcon = document.getElementById('system-status-icon');
+            const connStatus = document.getElementById('connection-status');
+
+            if (stats.error > 0) {
+                if (sysMsg) sysMsg.innerText = 'Attention Required';
+                if (sysContainer) sysContainer.className = 'w-20 h-20 bg-rose-500 rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-rose-200 ring-4 ring-rose-50 transition-all duration-500';
+                if (sysIcon) sysIcon.innerHTML = '<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+            } else {
+                if (sysMsg) sysMsg.innerText = 'System Optimized';
+                if (sysContainer) sysContainer.className = 'w-20 h-20 bg-emerald-500 rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-emerald-200 ring-4 ring-emerald-50 transition-all duration-500';
+                if (sysIcon) sysIcon.innerHTML = '<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
+            }
+
+            if (connStatus) {
+                connStatus.className = 'flex items-center space-x-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-100 transition-all duration-500';
+                connStatus.innerHTML = '<span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span><span>System Connected</span>';
+            }
+
+        } catch (e) {
+            const connStatus = document.getElementById('connection-status');
+            if (connStatus) {
+                connStatus.className = 'flex items-center space-x-2 bg-rose-50 text-rose-600 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider border border-rose-100 transition-all duration-500';
+                connStatus.innerHTML = '<span class="w-1.5 h-1.5 bg-rose-500 rounded-full pulse-animation"></span><span>Signal Lost</span>';
+            }
+        }
+    };
+
+    // Optimistic Actions
+    const performAction = async (id, action, successMsg) => {
+        const tunnel = globalTunnels.find(t => t.id === id);
+        if (!tunnel) return;
+
+        const originalStatus = tunnel.status;
+        const btn = document.getElementById(`btn-${action}-${id}`);
+        const originalContent = btn ? btn.innerHTML : '';
+
+        // Optimistic State
+        if (action === 'start' || action === 'restart') tunnel.status = 'STARTING';
+        if (action === 'stop') tunnel.status = 'STOPPED';
+        renderTunnels();
+
+        // Add loading state to button
+        const newBtn = document.getElementById(`btn-${action}-${id}`);
+        if (newBtn) {
+            newBtn.disabled = true;
+            newBtn.innerHTML = `
+                <svg class="animate-spin h-3 w-3 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.062 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Processing</span>
+            `;
+        }
+
+        try {
+            const res = await fetch(`/api/tunnels/${action}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            if (!res.ok) throw new Error();
+            showToast(successMsg);
+        } catch (e) {
+            tunnel.status = originalStatus;
+            renderTunnels();
+            showToast('Gateway Interrupted', 'error');
+        }
+        // Poll immediately after action for better feedback
+        setTimeout(fetchTunnels, 500);
+        setTimeout(fetchTunnels, 1500);
+    };
+
+    window.startTunnel = (id) => performAction(id, 'start', 'Deployment Awakened');
+    window.stopTunnel = (id) => performAction(id, 'stop', 'Gateway Frozen');
+    window.restartTunnel = (id) => performAction(id, 'restart', 'Node Rebooted');
+
+    window.deleteTunnel = async (id) => {
+        if (!confirm('Permanently terminate this proxy gateway?')) return;
+        const index = globalTunnels.findIndex(t => t.id === id);
+        const original = globalTunnels[index];
+
+        globalTunnels.splice(index, 1);
+        renderTunnels();
+
+        try {
+            await fetch('/api/tunnels/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+            showToast('Deployment Terminated');
+        } catch (e) {
+            globalTunnels.splice(index, 0, original);
+            renderTunnels();
+            showToast('Termination Failed', 'error');
+        }
+        fetchTunnels();
+        updateStats();
+    };
+
+    // Engines
+    const fetchProviders = async () => {
+        try {
+            const res = await fetch('/api/providers');
+            globalProviders = await res.json();
+
+            const typeSelect = document.querySelector('select[name="type"]');
+            if (typeSelect) {
+                typeSelect.innerHTML = globalProviders.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+                renderTunnelForm(typeSelect.value);
+            }
+
+            const grid = document.getElementById('provider-grid');
+            if (grid) {
+                grid.innerHTML = globalProviders.map(p => `
+                    <div class="premium-card p-8 flex flex-col space-y-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-black text-slate-900 tracking-tight">${p.name}</h3>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mt-2">${p.type}</p>
+                            </div>
+                            ${p.type !== 'Built-in Engine' ? `
+                            <button onclick="deleteProvider('${p.name}')" class="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>` : ''}
+                        </div>
+                        <div class="bg-slate-900 rounded-xl p-4 border border-white/5 ring-1 ring-slate-800">
+                            <code class="text-[10px] text-emerald-400 font-mono break-all font-bold">${p.command}</code>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) {}
+    };
+
+    window.deleteProvider = async (name) => {
+        if (!confirm(`Wipe engine "${name}"?`)) return;
+        try {
+            await fetch(`/api/providers?name=${encodeURIComponent(name)}`, { method: 'DELETE' });
+            showToast('Engine Purged');
+            fetchProviders();
+        } catch (e) { showToast('Purge Failed', 'error'); }
+    };
+
     const renderTunnelForm = (providerName) => {
-        dynamicTunnelVars.innerHTML = '';
+        const container = document.getElementById('dynamic-tunnel-vars');
+        if (!container) return;
+        container.innerHTML = '';
         const provider = globalProviders.find(p => p.name === providerName);
         if (!provider || !provider.variables) return;
 
         provider.variables.forEach(v => {
             const div = document.createElement('div');
-            div.className = 'space-y-2';
-            const label = `<label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${v.name}</label>`;
+            div.className = 'space-y-3';
+            const label = `<label class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">${v.name}</label>`;
 
             if (v.type === 'select') {
                 div.innerHTML = `
                     ${label}
-                    <select name="config_${v.id}" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none appearance-none cursor-pointer">
-                        ${v.options.map(opt => `<option value="${opt.value}" ${opt.value === v.default_value ? 'selected' : ''}>${opt.name}</option>`).join('')}
-                    </select>
+                    <div class="relative group">
+                        <select name="config_${v.id}" class="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-xs font-bold focus:bg-white focus:border-indigo-600 outline-none appearance-none cursor-pointer transition-all">
+                            ${v.options.map(opt => `<option value="${opt.value}" ${opt.value === v.default_value ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                        </select>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="3"></path></svg>
+                        </div>
+                    </div>
                 `;
             } else {
                 div.innerHTML = `
                     ${label}
-                    <input type="text" name="config_${v.id}" value="${v.default_value || ''}" placeholder="${v.name}" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-red-500 outline-none">
+                    <input type="text" name="config_${v.id}" value="${v.default_value || ''}" placeholder="${v.name}" class="w-full bg-slate-50 border-2 border-transparent rounded-2xl p-4 text-xs font-bold focus:bg-white focus:border-indigo-600 outline-none transition-all">
                 `;
             }
-            dynamicTunnelVars.appendChild(div);
+            container.appendChild(div);
         });
     };
 
-    typeSelect.addEventListener('change', () => renderTunnelForm(typeSelect.value));
+    document.querySelector('select[name="type"]')?.addEventListener('change', (e) => renderTunnelForm(e.target.value));
 
     window.closeModal = (id) => {
         document.getElementById(id).classList.add('hidden');
         if (id === 'provider-modal') {
-            providerForm.reset();
-            varsContainer.innerHTML = '';
+            document.getElementById('provider-form').reset();
+            document.getElementById('variables-container').innerHTML = '';
         }
     };
 
-    const updateStats = async () => {
-        try {
-            const response = await fetch('/api/stats');
-            const stats = await response.json();
-            document.getElementById('stat-total').innerText = stats.total;
-            document.getElementById('stat-running').innerText = stats.running;
-            document.getElementById('stat-starting').innerText = stats.starting;
-            document.getElementById('stat-error').innerText = stats.error;
-            document.getElementById('stat-providers').innerText = stats.providers;
-            document.getElementById('stat-active-sessions').innerText = stats.running;
-            document.getElementById('stat-starting-count').innerText = stats.starting;
-            if (doughnutChart) {
-                doughnutChart.data.datasets[0].data = [stats.running, stats.error, stats.starting];
-                doughnutChart.update();
-            }
-        } catch (err) {}
-    };
-
-    const fetchProviders = async () => {
-        try {
-            const response = await fetch('/api/providers');
-            globalProviders = await response.json();
-
-            typeSelect.innerHTML = globalProviders.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-            renderTunnelForm(typeSelect.value);
-
-            if (providerGrid) {
-                providerGrid.innerHTML = globalProviders.map(p => `
-                    <div class="card p-6 flex flex-col space-y-4">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="font-extrabold text-gray-900">${p.name}</h3>
-                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">${p.type}</p>
-                            </div>
-                            ${p.type !== 'Built-in Engine' ? `
-                            <button onclick="deleteProvider('${p.name}')" class="text-gray-300 hover:text-red-500">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>` : ''}
-                        </div>
-                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                            <code class="text-[10px] text-red-500 font-mono break-all">${p.command}</code>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        } catch (err) {}
-    };
-
-    providerForm.addEventListener('submit', async (e) => {
+    // Submissions
+    document.getElementById('tunnel-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const fd = new FormData(providerForm);
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.062 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Provisioning...</span>
+            </div>
+        `;
+
+        const fd = new FormData(e.target);
+        const rawData = Object.fromEntries(fd.entries());
+        const data = { name: rawData.name, type: rawData.type, config: {} };
+        Object.keys(rawData).forEach(k => { if(k.startsWith('config_')) data.config[k.replace('config_', '')] = rawData[k]; });
+
+        try {
+            const res = await fetch('/api/tunnels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            if (!res.ok) throw new Error(await res.text());
+            showToast('Protocol Dispatched');
+            showSection('tunnels');
+            fetchTunnels();
+            updateStats();
+        } catch (e) {
+            showToast(e.message || 'Dispatch Failed', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            btn.innerHTML = originalText;
+        }
+    });
+
+    document.getElementById('provider-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.062 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Integrating...</span>';
+
+        const fd = new FormData(e.target);
         const data = {
-            name: fd.get('name'),
-            regex: fd.get('regex'),
-            command: fd.get('command'),
-            check_cmd: fd.get('check_cmd'),
-            install_cmd: fd.get('install_cmd'),
-            variables: []
+            name: fd.get('name'), regex: fd.get('regex'), command: fd.get('command'),
+            check_cmd: fd.get('check_cmd'), install_cmd: fd.get('install_cmd'), variables: []
         };
 
-        const rows = varsContainer.querySelectorAll('.bg-gray-50');
-        rows.forEach(row => {
+        document.querySelectorAll('#variables-container .bg-slate-50').forEach(row => {
             const v = {
                 name: row.querySelector('[name="var_name"]').value,
                 id: row.querySelector('[name="var_id"]').value,
@@ -276,117 +563,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 options: []
             };
             if (v.type === 'select') {
-                const optRows = row.querySelectorAll('.opts-list > div');
-                optRows.forEach(optRow => {
-                    v.options.push({
-                        name: optRow.querySelector('[name="opt_name"]').value,
-                        value: optRow.querySelector('[name="opt_value"]').value
-                    });
+                row.querySelectorAll('.opts-list > div').forEach(optRow => {
+                    v.options.push({ name: optRow.querySelector('[name="opt_name"]').value, value: optRow.querySelector('[name="opt_value"]').value });
                 });
             }
             data.variables.push(v);
         });
 
-        await fetch('/api/providers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        closeModal('provider-modal');
-        fetchProviders();
-    });
-
-    const fetchTunnels = async () => {
         try {
-            const response = await fetch('/api/tunnels');
-            const tunnels = await response.json();
-            if (!tunnelGrid) return;
-            tunnelGrid.innerHTML = tunnels.map(t => {
-                const color = t.status === 'RUNNING' ? 'green' : (t.status === 'ERROR' ? 'red' : 'yellow');
-                const isStopped = t.status === 'STOPPED' || t.status === 'ERROR';
-                return `
-                <div class="card p-6 flex flex-col space-y-6 border-t-4 border-${color}-500">
-                    <div class="flex justify-between items-start">
-                        <div class="space-y-1">
-                            <div class="flex items-center space-x-2">
-                                <div class="w-2 h-2 rounded-full bg-${color}-500 ${t.status === 'STARTING' ? 'animate-pulse' : ''}"></div>
-                                <h3 class="font-extrabold text-gray-900">${t.name}</h3>
-                            </div>
-                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${t.type} • ${t.status}</p>
-                        </div>
-                        <div class="flex space-x-1">
-                             <button onclick="showLogs('${t.id}', '${t.name}')" class="p-2 text-gray-400 hover:bg-gray-50 rounded-lg">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            </button>
-                            <button onclick="deleteTunnel('${t.id}')" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 rounded-xl p-4 space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-[10px] font-bold text-gray-400 uppercase">Public URL</span>
-                            <a href="${t.public_url}" target="_blank" class="text-[11px] font-bold text-blue-500 truncate max-w-[150px]">${t.public_url || 'Allocating...'}</a>
-                        </div>
-                    </div>
-                    <div class="flex space-x-2">
-                        ${isStopped ?
-                            `<button onclick="startTunnel('${t.id}')" class="flex-1 py-2 bg-green-50 text-green-600 text-[10px] font-extrabold uppercase rounded-lg hover:bg-green-100">Start</button>` :
-                            `<button onclick="stopTunnel('${t.id}')" class="flex-1 py-2 bg-yellow-50 text-yellow-600 text-[10px] font-extrabold uppercase rounded-lg hover:bg-yellow-100">Stop</button>`
-                        }
-                        <button onclick="restartTunnel('${t.id}')" class="flex-1 py-2 bg-gray-50 text-gray-600 text-[10px] font-extrabold uppercase rounded-lg hover:bg-gray-100">Restart</button>
-                    </div>
-                </div>
-                `;
-            }).join('');
-        } catch (err) {}
-    };
-
-    tunnelForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const rawData = Object.fromEntries(new FormData(tunnelForm).entries());
-        const data = {
-            id: rawData.id, name: rawData.name, type: rawData.type,
-            config: {}
-        };
-        Object.keys(rawData).forEach(k => { if(k.startsWith('config_')) data.config[k.replace('config_', '')] = rawData[k]; });
-        const res = await fetch('/api/tunnels', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        if (res.ok) { closeModal('add-modal'); fetchTunnels(); updateStats(); }
+            await fetch('/api/providers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            showToast('Engine Integrated');
+            showSection('providers');
+            fetchProviders();
+        } catch (e) {
+            showToast('Integration Failed', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     });
 
-    window.startTunnel = async (id) => { await fetch('/api/tunnels/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); };
-    window.stopTunnel = async (id) => { await fetch('/api/tunnels/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); };
-    window.restartTunnel = async (id) => { await fetch('/api/tunnels/restart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); };
-    window.deleteTunnel = async (id) => { if (confirm('Terminate?')) { await fetch('/api/tunnels/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); fetchTunnels(); updateStats(); } };
-
+    // Logs
     let logInterval = null;
     window.showLogs = async (id, name) => {
         document.getElementById('log-node-name').innerText = name;
         const container = document.getElementById('log-container');
         container.innerHTML = '';
         document.getElementById('logs-modal').classList.remove('hidden');
-        const fetchLogs = async () => {
-            const res = await fetch(`/api/tunnels/logs?id=${id}`);
-            const logs = await res.json();
-            container.innerHTML = logs.map(l => `<div class="opacity-80">${l}</div>`).join('') || 'Waiting for output...';
-            container.scrollTop = container.scrollHeight;
+        const poll = async () => {
+            try {
+                const res = await fetch(`/api/tunnels/logs?id=${id}`);
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        container.innerHTML = '<p class="text-rose-400 italic">Tunnel no longer exists.</p>';
+                        clearInterval(logInterval);
+                    }
+                    return;
+                }
+                const logs = await res.json();
+                container.innerHTML = logs.map(l => `<div class="opacity-80 py-0.5 border-b border-white/5 last:border-0"><span class="text-indigo-400 font-black mr-2">&rsaquo;</span>${l}</div>`).join('') || '<p class="text-slate-500 italic">Awaiting packet stream...</p>';
+                container.scrollTop = container.scrollHeight;
+            } catch (e) {}
         };
-        fetchLogs();
-        logInterval = setInterval(fetchLogs, 2000);
+        poll();
+        if (logInterval) clearInterval(logInterval);
+        logInterval = setInterval(poll, 2000);
     };
 
-    const originalCloseModal = window.closeModal;
+    const originalClose = window.closeModal;
     window.closeModal = (id) => {
-        if (id === 'logs-modal') { clearInterval(logInterval); logInterval = null; }
-        originalCloseModal(id);
+        if (id === 'logs-modal') clearInterval(logInterval);
+        originalClose(id);
     };
 
+    // Init
     fetchProviders();
     fetchTunnels();
     updateStats();
-    setInterval(() => { fetchTunnels(); updateStats(); }, 5000);
+    setInterval(() => { fetchTunnels(); updateStats(); }, 2500);
 });

@@ -5,7 +5,9 @@ import (
 	"embed"
 	"encoding/json"
 	"io/fs"
+	"log"
 	"net/http"
+	"strings"
 
 	"github.com/elite-architect/kstunnel/internal/orchestrator"
 	"github.com/elite-architect/kstunnel/internal/tunnel"
@@ -20,7 +22,7 @@ func NewServer(orch *orchestrator.Orchestrator, static embed.FS) *Server {
 	return &Server{orch: orch, static: static}
 }
 
-func (s *Server) Router() *http.ServeMux {
+func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 
 	staticFS, _ := fs.Sub(s.static, "ui/static")
@@ -34,7 +36,17 @@ func (s *Server) Router() *http.ServeMux {
 	mux.HandleFunc("/api/tunnels/logs", s.handleLogs)
 	mux.HandleFunc("/api/providers", s.handleProviders)
 	mux.HandleFunc("/api/stats", s.handleStats)
-	return mux
+
+	// Wrap with recovery middleware to prevent "Bad Gateway" on crashes
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				log.Printf("PANIC RECOVERED: %v", rec)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+		}()
+		mux.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +83,7 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var provider tunnel.TunnelProvider
-		if req.Type == "ngrok" {
+		if strings.ToLower(req.Type) == "ngrok" {
 			// ngrok still uses explicit params for now, or we could refactor it too.
 			// For simplicity with the user's new generic request, let's look at config.
 			localAddr := req.Config["Port"]
@@ -82,7 +94,8 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 			if token == "" {
 				token = req.Token
 			}
-			provider = tunnel.NewNgrokProvider(id, req.Name, localAddr, token)
+			domain := req.Config["Domain"]
+			provider = tunnel.NewNgrokProvider(id, req.Name, localAddr, token, domain)
 		} else {
 			// Check if it's a custom provider
 			pDef, ok := s.orch.GetProvider(req.Type)
@@ -106,10 +119,14 @@ func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Always try to start (or restart) after create/edit
-		if err := s.orch.StartTunnel(context.Background(), id); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// Log panic or handle it silently
+				}
+			}()
+			s.orch.StartTunnel(context.Background(), id)
+		}()
 
 		w.WriteHeader(http.StatusCreated)
 	default:
@@ -129,10 +146,14 @@ func (s *Server) handleStartTunnel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := s.orch.StartTunnel(context.Background(), req.ID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				// Log panic
+			}
+		}()
+		s.orch.StartTunnel(context.Background(), req.ID)
+	}()
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -167,10 +188,14 @@ func (s *Server) handleRestartTunnel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := s.orch.RestartTunnel(context.Background(), req.ID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				// Log panic
+			}
+		}()
+		s.orch.RestartTunnel(context.Background(), req.ID)
+	}()
 	w.WriteHeader(http.StatusOK)
 }
 

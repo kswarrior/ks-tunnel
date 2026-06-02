@@ -9,7 +9,14 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 )
+
+var ansiRegex = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[-a-zA-Z\\d\\/#&.:=?%@~%]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))")
+
+func stripAnsi(str string) string {
+	return ansiRegex.ReplaceAllString(str, "")
+}
 
 type GenericProvider struct {
 	id        string
@@ -55,8 +62,26 @@ func NewGenericProvider(id, name, typeName, cmdStr, regex, checkCmd, installCmd 
 
 func (p *GenericProvider) interpolate(cmd string) string {
 	for k, v := range p.variables {
-		cmd = strings.ReplaceAll(cmd, "${"+k+"}", v)
+		placeholder := "${" + k + "}"
+		if v == "" {
+			// If value is empty, try to remove the preceding flag
+			// Handle cases where placeholder is standalone: --flag ${Var}
+			// or part of a URL: --url http://localhost:${Port}
+			safePlaceholder := regexp.QuoteMeta(placeholder)
+			// Match a flag followed by space and then either the placeholder OR something containing the placeholder (like a URL)
+			re := regexp.MustCompile(`\s--?[a-zA-Z0-9-]+\s[^\s]*` + safePlaceholder + `[^\s]*`)
+			if re.MatchString(cmd) {
+				cmd = re.ReplaceAllString(cmd, "")
+			} else {
+				// Final fallback if no flag found
+				cmd = strings.ReplaceAll(cmd, placeholder, "")
+			}
+		} else {
+			cmd = strings.ReplaceAll(cmd, placeholder, v)
+		}
 	}
+	// Clean up double spaces
+	cmd = strings.Join(strings.Fields(cmd), " ")
 	return cmd
 }
 
@@ -69,18 +94,17 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 	p.status = StatusStarting
 	p.publicURL = ""
 	p.lastError = ""
+	p.logs = make([]string, 0, 100) // Reset logs on start
 	p.mu.Unlock()
 
 	// Install on demand if commands are provided
 	if p.checkCmd != "" && p.installCmd != "" {
 		checkCmd := p.interpolate(p.checkCmd)
 		p.addLog("Checking if software is installed: " + checkCmd)
-		checkParts := strings.Fields(checkCmd)
-		if err := exec.Command(checkParts[0], checkParts[1:]...).Run(); err != nil {
+		if err := exec.Command("sh", "-c", checkCmd).Run(); err != nil {
 			p.addLog("Software not found. Installing...")
 			installCmd := p.interpolate(p.installCmd)
-			installParts := strings.Fields(installCmd)
-			if out, err := exec.Command(installParts[0], installParts[1:]...).CombinedOutput(); err != nil {
+			if out, err := exec.Command("sh", "-c", installCmd).CombinedOutput(); err != nil {
 				p.addLog("Installation failed: " + string(out))
 				p.setError("installation failed: " + err.Error())
 				return err
@@ -96,13 +120,13 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 
 	p.addLog("Executing: " + finalCmd)
 
-	parts := strings.Fields(finalCmd)
-	if len(parts) == 0 {
+	if finalCmd == "" {
 		p.setError("empty command")
 		return fmt.Errorf("empty command")
 	}
 
-	cmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
+	cmd := exec.CommandContext(ctx, "sh", "-c", finalCmd)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	p.cmd = cmd
 
 	stdout, _ := cmd.StdoutPipe()
@@ -114,13 +138,41 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 	}
 
 	p.mu.Lock()
-	p.status = StatusRunning
+	// If a regex is provided, we stay in STARTING until the URL is found
+	if p.regex == "" {
+		p.status = StatusRunning
+	} else {
+		p.status = StatusStarting
+	}
 	p.mu.Unlock()
 
-	go p.scanLogs(stdout)
-	go p.scanLogs(stderr)
+	if stdout != nil {
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					p.addLog("Recovered from stdout scanning panic")
+				}
+			}()
+			p.scanLogs(stdout)
+		}()
+	}
+	if stderr != nil {
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					p.addLog("Recovered from stderr scanning panic")
+				}
+			}()
+			p.scanLogs(stderr)
+		}()
+	}
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				p.addLog("Recovered from background process panic")
+			}
+		}()
 		err := cmd.Wait()
 		p.mu.Lock()
 		p.status = StatusStopped
@@ -140,7 +192,13 @@ func (p *GenericProvider) Stop() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.cmd != nil && p.cmd.Process != nil {
-		return p.cmd.Process.Kill()
+		// Kill the entire process group to ensure child processes are terminated
+		err := syscall.Kill(-p.cmd.Process.Pid, syscall.SIGKILL)
+		if err != nil {
+			// Fallback if PGID kill fails
+			return p.cmd.Process.Kill()
+		}
+		return nil
 	}
 	return nil
 }
@@ -183,15 +241,34 @@ func (p *GenericProvider) addLog(line string) {
 	}
 	p.logs = append(p.logs, line)
 
+	// Strip ANSI codes for URL detection
+	cleanLine := stripAnsi(line)
+
 	// Attempt to find public URL using custom regex
 	if p.publicURL == "" && p.re != nil {
-		if found := p.re.FindString(line); found != "" {
+		if found := p.re.FindString(cleanLine); found != "" {
 			p.publicURL = found
+			if p.status == StatusStarting {
+				p.status = StatusRunning
+			}
+		}
+	}
+
+	// Capture common "Ready" or "Online" messages to confirm running status
+	lower := strings.ToLower(cleanLine)
+	if strings.Contains(lower, "online") || strings.Contains(lower, "ready") || strings.Contains(lower, "tunnel established") || strings.Contains(lower, "success") || strings.Contains(lower, "active") {
+		if p.status == StatusStarting {
+			p.status = StatusRunning
 		}
 	}
 }
 
 func (p *GenericProvider) scanLogs(r io.ReadCloser) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			p.addLog("Recovered from log scanning panic")
+		}
+	}()
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		p.addLog(scanner.Text())
