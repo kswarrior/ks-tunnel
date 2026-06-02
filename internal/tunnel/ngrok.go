@@ -81,7 +81,14 @@ func (p *NgrokProvider) Start(ctx context.Context) error {
 	p.mu.Unlock()
 	p.addLog(fmt.Sprintf("Ngrok tunnel established at %s", p.publicURL))
 
-	go p.forward(tun)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				p.addLog("Recovered from Ngrok forwarder panic")
+			}
+		}()
+		p.forward(tun)
+	}()
 
 	return nil
 }
@@ -121,10 +128,20 @@ func (p *NgrokProvider) handleConn(conn net.Conn) {
 
 	done := make(chan struct{}, 2)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				p.addLog("Recovered from Ngrok copy out panic")
+			}
+		}()
 		io.Copy(dest, conn)
 		done <- struct{}{}
 	}()
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				p.addLog("Recovered from Ngrok copy in panic")
+			}
+		}()
 		io.Copy(conn, dest)
 		done <- struct{}{}
 	}()

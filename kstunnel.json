@@ -17,5 +17,18 @@
       "install_cmd": ""
     }
   ],
-  "tunnels": null
+  "tunnels": [
+    {
+      "id": "Local Test",
+      "name": "Local Test",
+      "type": "Localtunnel",
+      "local_addr": "8080",
+      "public_url": "",
+      "status": "STOPPED",
+      "config": {
+        "Port": "8080",
+        "Subdomain": ""
+      }
+    }
+  ]
 }

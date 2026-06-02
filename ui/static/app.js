@@ -122,33 +122,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const createVarRow = (v = {}) => {
         const rowId = 'var-' + Math.random().toString(36).substr(2, 9);
         const row = document.createElement('div');
-        row.className = 'bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-6 animate-in fade-in zoom-in-95 duration-300';
+        row.className = 'bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-6 animate-in fade-in zoom-in-95 duration-300 relative';
         row.id = rowId;
         row.innerHTML = `
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div class="space-y-2">
-                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Label</label>
-                    <input type="text" name="var_name" value="${v.name || ''}" placeholder="Protocol" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold focus:border-indigo-600 outline-none transition-all">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Variable Label</label>
+                    <input type="text" name="var_name" value="${v.name || ''}" placeholder="e.g. Protocol" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-xs font-bold focus:border-indigo-600 outline-none transition-all">
                 </div>
                 <div class="space-y-2">
-                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">ID (Internal)</label>
-                    <input type="text" name="var_id" value="${v.id || ''}" placeholder="Protocol" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-mono focus:border-indigo-600 outline-none transition-all">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Variable ID</label>
+                    <input type="text" name="var_id" value="${v.id || ''}" placeholder="e.g. Protocol" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-xs font-mono focus:border-indigo-600 outline-none transition-all">
                 </div>
                 <div class="space-y-2">
-                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</label>
-                    <select name="var_type" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold focus:border-indigo-600 outline-none transition-all appearance-none cursor-pointer">
-                        <option value="input" ${v.type==='input'?'selected':''}>Text Input</option>
-                        <option value="select" ${v.type==='select'?'selected':''}>Selection List</option>
-                    </select>
-                </div>
-                <div class="flex items-end justify-between">
-                    <div class="space-y-2 flex-1">
-                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Default</label>
-                        <input type="text" name="var_default" value="${v.default_value || ''}" placeholder="http" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold focus:border-indigo-600 outline-none transition-all">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Input Type</label>
+                    <div class="relative">
+                        <select name="var_type" class="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-xs font-bold focus:border-indigo-600 outline-none appearance-none cursor-pointer">
+                            <option value="input" ${v.type==='input'?'selected':''}>Text Input</option>
+                            <option value="select" ${v.type==='select'?'selected':''}>Selection List</option>
+                        </select>
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="3"></path></svg>
+                        </div>
                     </div>
-                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="ml-4 mb-1 p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all active:scale-95">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
+                </div>
+                <div class="space-y-2 relative">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Default Value</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="text" name="var_default" value="${v.default_value || ''}" placeholder="e.g. http" class="flex-1 bg-white border-2 border-slate-100 rounded-xl p-3 text-xs font-bold focus:border-indigo-600 outline-none transition-all">
+                        <button type="button" onclick="document.getElementById('${rowId}').remove()" class="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="options-container ${v.type === 'select' ? '' : 'hidden'} space-y-4">
@@ -472,7 +477,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = e.target.querySelector('button[type="submit"]');
         const originalText = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.062 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Deploying...</span>';
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.062 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Provisioning...</span>
+            </div>
+        `;
 
         const fd = new FormData(e.target);
         const rawData = Object.fromEntries(fd.entries());
@@ -490,6 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast(e.message || 'Dispatch Failed', 'error');
         } finally {
             btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
             btn.innerHTML = originalText;
         }
     });
@@ -546,12 +561,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const poll = async () => {
             try {
                 const res = await fetch(`/api/tunnels/logs?id=${id}`);
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        container.innerHTML = '<p class="text-rose-400 italic">Tunnel no longer exists.</p>';
+                        clearInterval(logInterval);
+                    }
+                    return;
+                }
                 const logs = await res.json();
                 container.innerHTML = logs.map(l => `<div class="opacity-80 py-0.5 border-b border-white/5 last:border-0"><span class="text-indigo-400 font-black mr-2">&rsaquo;</span>${l}</div>`).join('') || '<p class="text-slate-500 italic">Awaiting packet stream...</p>';
                 container.scrollTop = container.scrollHeight;
             } catch (e) {}
         };
         poll();
+        if (logInterval) clearInterval(logInterval);
         logInterval = setInterval(poll, 2000);
     };
 

@@ -233,9 +233,9 @@ func (o *Orchestrator) seedDefaultProviders() {
 }
 
 func (o *Orchestrator) AddTunnel(provider tunnel.TunnelProvider) error {
-	info := provider.Status()
 	o.mu.Lock()
 	defer o.mu.Unlock()
+	info := provider.Status()
 	if _, exists := o.tunnels[info.ID]; exists {
 		return fmt.Errorf("tunnel with ID %s already exists", info.ID)
 	}

@@ -140,10 +140,24 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 	p.mu.Unlock()
 
 	if stdout != nil {
-		go p.scanLogs(stdout)
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					p.addLog("Recovered from stdout scanning panic")
+				}
+			}()
+			p.scanLogs(stdout)
+		}()
 	}
 	if stderr != nil {
-		go p.scanLogs(stderr)
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					p.addLog("Recovered from stderr scanning panic")
+				}
+			}()
+			p.scanLogs(stderr)
+		}()
 	}
 
 	go func() {
@@ -229,7 +243,7 @@ func (p *GenericProvider) addLog(line string) {
 
 	// Capture common "Ready" or "Online" messages to confirm running status
 	lower := strings.ToLower(cleanLine)
-	if strings.Contains(lower, "online") || strings.Contains(lower, "ready") || strings.Contains(lower, "tunnel established") || strings.Contains(lower, "success") {
+	if strings.Contains(lower, "online") || strings.Contains(lower, "ready") || strings.Contains(lower, "tunnel established") || strings.Contains(lower, "success") || strings.Contains(lower, "active") {
 		if p.status == StatusStarting {
 			p.status = StatusRunning
 		}
