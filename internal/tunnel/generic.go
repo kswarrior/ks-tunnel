@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 )
 
 var ansiRegex = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[-a-zA-Z\\d\\/#&.:=?%@~%]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))")
@@ -125,6 +126,7 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 	}
 
 	cmd := exec.CommandContext(ctx, "sh", "-c", finalCmd)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	p.cmd = cmd
 
 	stdout, _ := cmd.StdoutPipe()
@@ -136,7 +138,12 @@ func (p *GenericProvider) Start(ctx context.Context) error {
 	}
 
 	p.mu.Lock()
-	p.status = StatusRunning
+	// If a regex is provided, we stay in STARTING until the URL is found
+	if p.regex == "" {
+		p.status = StatusRunning
+	} else {
+		p.status = StatusStarting
+	}
 	p.mu.Unlock()
 
 	if stdout != nil {
@@ -185,7 +192,13 @@ func (p *GenericProvider) Stop() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.cmd != nil && p.cmd.Process != nil {
-		return p.cmd.Process.Kill()
+		// Kill the entire process group to ensure child processes are terminated
+		err := syscall.Kill(-p.cmd.Process.Pid, syscall.SIGKILL)
+		if err != nil {
+			// Fallback if PGID kill fails
+			return p.cmd.Process.Kill()
+		}
+		return nil
 	}
 	return nil
 }

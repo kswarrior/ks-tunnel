@@ -356,7 +356,9 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTunnels();
             showToast('Gateway Interrupted', 'error');
         }
-        fetchTunnels();
+        // Poll immediately after action for better feedback
+        setTimeout(fetchTunnels, 500);
+        setTimeout(fetchTunnels, 1500);
     };
 
     window.startTunnel = (id) => performAction(id, 'start', 'Deployment Awakened');
