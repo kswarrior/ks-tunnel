@@ -1,4 +1,4 @@
-name: KS Panel Testing
+name: KS Tunnel Testing
 
 on:
   workflow_dispatch:
